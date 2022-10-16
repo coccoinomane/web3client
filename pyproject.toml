@@ -1,0 +1,60 @@
+[project]
+name = "web3client"
+version = "0.1.0"
+description = "Client to interact with multiple EVM blockchain"
+authors = [
+    {name = "coccoinomane", email = "coccoinomane@gmail.com"},
+]
+readme = "README.md"
+keywords = ["web3", "blockchain", "ethereum", "evm"]
+license = {text = "MIT"}
+requires-python = ">=3.10,<4"
+dependencies = [
+    "web3>=5.31.1,<6.0.0",
+    "eth-typing>=2.3.0",
+]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest>=7.1.3",
+    "mypy>=0.982",
+]
+
+[tool.pdm.scripts]
+test = "pytest tests"
+
+
+[project.urls]
+homepage = "https://github.com/coccoinomane/web3client.py"
+repository = "https://github.com/coccoinomane/web3client.py"
+
+[project.optional-dependencies]
+[tool.pdm]
+[tool.pdm.build]
+includes = ["src"]
+
+[build-system]
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"
+
+[tool.black]
+line-length = 88
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+strict_optional = false
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+disallow_any_unimported = true
+disallow_untyped_calls = true
+exclude = [
+    '__pypackages__',
+]

@@ -1,0 +1,25 @@
+# general things to ignore
+build/
+dist/
+*.egg-info/
+*.egg
+*.py[cod]
+__pycache__/
+*.so
+*~
+.env
+.history
+reports/
+.DS_Store
+Desktop.ini
+
+# python tooling
+.tox
+.cache
+.pytest_cache
+.pdm.toml
+__pypackages__/
+
+# other
+.vscode/settings.json
+venv/
