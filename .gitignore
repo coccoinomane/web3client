@@ -19,6 +19,7 @@ Desktop.ini
 .pytest_cache
 .pdm.toml
 __pypackages__/
+.mypy_cache
 
 # other
 .vscode/settings.json
