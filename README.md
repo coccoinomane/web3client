@@ -9,7 +9,7 @@ Easy to use Python client to interact with multiple EVM blockchain.
 # Install
 
 ```bash
-pip3 install -i https://pypi.org/simple/web3client
+pip3 install -U web3client
 ```
 
 # It doesn't work 😡
