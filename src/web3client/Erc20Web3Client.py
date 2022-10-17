@@ -2,7 +2,7 @@ from typing import Any, Union
 from eth_typing import Address, HexStr
 from web3 import Web3
 from web3.types import Wei
-from src.web3client.Web3Client import Web3Client
+from web3client.Web3Client import Web3Client
 from web3.types import TxParams, Nonce
 import os
 

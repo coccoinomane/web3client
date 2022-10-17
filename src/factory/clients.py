@@ -5,8 +5,8 @@ by the scripts
 
 from typing import cast
 from eth_typing import Address
-from src.web3client.Erc20Web3Client import Erc20Web3Client
-from src.web3client.Web3Client import Web3Client
+from web3client.Erc20Web3Client import Erc20Web3Client
+from web3client.Web3Client import Web3Client
 from factory.Web3ClientFactory import makeErc20Client, makeWeb3Client
 
 

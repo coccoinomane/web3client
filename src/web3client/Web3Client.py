@@ -9,7 +9,7 @@ from eth_account.datastructures import SignedTransaction
 from web3.contract import ContractFunction
 from web3.types import BlockData, Nonce, TxParams, TxReceipt, TxData
 from eth_typing.encoding import HexStr
-from src.web3client.exceptions import TransactionTooExpensive
+from web3client.exceptions import TransactionTooExpensive
 from web3.contract import Contract
 from web3.types import Middleware, Wei
 from web3.gas_strategies import rpc

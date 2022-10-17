@@ -2,7 +2,7 @@
 Define shared state for all tests
 """
 import pytest
-from src.web3client.Web3Client import Web3Client
+from web3client.Web3Client import Web3Client
 
 
 @pytest.fixture()

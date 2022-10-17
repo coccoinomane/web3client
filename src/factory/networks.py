@@ -1,7 +1,7 @@
 from typing import Any, List, cast
-from src.web3client.helpers.general import findInListOfDicts
-from src.web3client.exceptions import NetworkNotFound
-from src.web3client.types import NetworkConfig
+from web3client.helpers.general import findInListOfDicts
+from web3client.exceptions import NetworkNotFound
+from web3client.types import NetworkConfig
 from web3.middleware import geth_poa_middleware
 
 supportedNetworks: List[NetworkConfig] = [

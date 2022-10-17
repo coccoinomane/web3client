@@ -1,6 +1,6 @@
 from typing import Any
 from eth_typing import Address, HexStr
-from src.web3client.Web3Client import Web3Client
+from web3client.Web3Client import Web3Client
 from web3.middleware import geth_poa_middleware
 
 

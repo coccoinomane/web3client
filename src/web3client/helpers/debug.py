@@ -1,6 +1,6 @@
 from typing import Any, Union
 from eth_typing.encoding import HexStr
-from src.web3client.Web3Client import Web3Client
+from web3client.Web3Client import Web3Client
 from web3.datastructures import AttributeDict
 from web3.types import TxReceipt
 import pprint
