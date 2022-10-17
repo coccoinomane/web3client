@@ -16,8 +16,8 @@ pip3 install -U web3client
 
 Don't panic! Instead...
 
-1. Please check if your issue is listed in the [Issues tab](https://github.com/coccoinomane/web3client.py/issues).
-2. If not, consider [writing a new issue](https://github.com/ethereum/web3client.py/issues/new) 🙂
+1. Please check if your issue is listed in the [Issues tab](https://github.com/coccoinomane/web3client/issues).
+2. If not, consider [writing a new issue](https://github.com/coccoinomane/web3client/issues/new) 🙂
 
 # Testing
 
