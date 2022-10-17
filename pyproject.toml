@@ -1,6 +1,6 @@
 [project]
 name = "web3client"
-version = "0.1.0"
+version = "0.1.2"
 description = "Client to interact with multiple EVM blockchain"
 authors = [
     {name = "coccoinomane", email = "coccoinomane@gmail.com"},
@@ -22,6 +22,7 @@ dev = [
 
 [tool.pdm.scripts]
 test = "pytest tests"
+publish_test = "pdm publish -r ${PDM_PUBLISH_TEST_REPO} -u ${PDM_PUBLISH_TEST_USERNAME} -P ${PDM_PUBLISH_TEST_PASSWORD}"
 
 
 [project.urls]

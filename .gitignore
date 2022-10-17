@@ -20,6 +20,7 @@ Desktop.ini
 .pdm.toml
 __pypackages__/
 .mypy_cache
+pypi-*/
 
 # other
 .vscode/settings.json

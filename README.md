@@ -1,15 +1,16 @@
-Easy to use client to interact with multiple EVM blockchain.
+Easy to use Python client to interact with multiple EVM blockchain.
 
 # Features
 
 - Easily create a client to interact with EVM-compatible chains.
 - Preconfigured for the most popular chains: Ethereum, Binance, Avalanche, Cronos, etc.
-- Uses web3.py under the hood, thus allowing advanced usage.
+- Exposes the underlying web3.py client to allow for more flexibility
 
-# Quick start
+# Install
 
-1. Make sure you have Python 3.9 or later installed.
-2. Install dependencies: `pip install -r requirements.txt`.
+```bash
+pip3 install -i https://pypi.org/simple/web3client
+```
 
 # It doesn't work 😡
 
@@ -20,11 +21,8 @@ Don't panic! Instead...
 
 # Testing
 
-If you are a developer and want to run the package's tests, first install [PDM](https://github.com/pdm-project/pdm/) and run `pdm install`.
-
-Then, run tests with:
 ```bash
-pdm run test
+pytest tests
 ```
 
 # TO DO

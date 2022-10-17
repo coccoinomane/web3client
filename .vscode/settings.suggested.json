@@ -6,7 +6,8 @@
   "files.exclude": {
     "**/__pycache__": true,
     "**/.pytest_cache": true,
-    "**/.mypy_cache": true
+    "**/.mypy_cache": true,
+    "pypi-*/": true
   },
   "python.analysis.typeCheckingMode": "off",
   "python.autoComplete.extraPaths": ["__pypackages__/3.10/lib"],
