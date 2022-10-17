@@ -1,6 +1,6 @@
 [project]
 name = "web3client"
-version = "0.1.5"
+version = "0.1.6"
 description = "Client to interact with multiple EVM blockchain"
 authors = [
     {name = "coccoinomane", email = "coccoinomane@gmail.com"},
@@ -54,7 +54,7 @@ strict_optional = false
 warn_redundant_casts = true
 warn_unused_configs = true
 warn_unused_ignores = true
-disallow_any_unimported = true
+disallow_any_unimported = false
 disallow_untyped_calls = true
 exclude = [
     '__pypackages__',
