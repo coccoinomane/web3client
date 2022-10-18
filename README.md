@@ -27,5 +27,7 @@ pytest tests
 
 # TO DO
 
-- Network selector, with default public RCPs
-- Adjust tests to run automatically for all chains (or testnets)
+- Add array of public RPCs for each network (like ethers.js does with getDefaultProvider)
+- Adjust tests to run automatically for all chains (or testnets) using public RPCs
+- Add more popular blockchains
+- Create human-friendly ERC20 token selector

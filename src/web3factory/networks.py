@@ -4,7 +4,7 @@ from web3client.exceptions import NetworkNotFound
 from web3client.types import NetworkConfig
 from web3.middleware import geth_poa_middleware
 
-supportedNetworks: List[NetworkConfig] = [
+supported_networks: List[NetworkConfig] = [
     # Ethereum
     {
         "name": "Ethereum",
@@ -21,7 +21,7 @@ supportedNetworks: List[NetworkConfig] = [
     },
     # Swimmer Network Avalanche subnet
     {
-        "name": "SwimmerNetwork",
+        "name": "Swimmer Network",
         "txType": 1,
         "chainId": 73772,
         "middlewares": [geth_poa_middleware],
@@ -29,25 +29,25 @@ supportedNetworks: List[NetworkConfig] = [
 ]
 
 
-def getNetworkConfig(networkName: str) -> NetworkConfig:
+def get_network_config(networkName: str) -> NetworkConfig:
     """
     Return the configuration for the network with the given
     name; raises an exception if not found
     """
     network: NetworkConfig = findInListOfDicts(
-        cast(Any, supportedNetworks), "name", networkName
+        cast(Any, supported_networks), "name", networkName
     )
     if network is None:
         raise NetworkNotFound(f"Network '{networkName}' not supported")
     return network
 
 
-def isNetworkSupported(networkName: str) -> bool:
+def is_network_supported(networkName: str) -> bool:
     """
     Return true if the given network is supported by the client
     """
     try:
-        getNetworkConfig(networkName)
+        get_network_config(networkName)
         return True
     except NetworkNotFound:
         return False
