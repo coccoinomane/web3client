@@ -2,7 +2,7 @@ from random import choice
 from typing import Any, List, cast
 from web3client.helpers.general import findInListOfDicts
 from web3client.exceptions import NetworkNotFound
-from web3client.types import NetworkConfig
+from web3factory.types import NetworkConfig
 from web3.middleware import geth_poa_middleware
 
 
@@ -43,35 +43,36 @@ supported_networks: List[NetworkConfig] = [
 ]
 
 
-def get_network_config(networkName: str) -> NetworkConfig:
+def get_network_config(name: str) -> NetworkConfig:
     """
     Return the configuration for the network with the given
     name; raises an exception if not found
     """
     network: NetworkConfig = findInListOfDicts(
-        cast(Any, supported_networks), "name", networkName
+        cast(Any, supported_networks), "name", name
     )
     if network is None:
-        raise NetworkNotFound(f"Network '{networkName}' not supported")
+        raise NetworkNotFound(f"Network '{name}' not supported")
     return network
 
 
-def pick_rpc(networkName: str) -> str:
+def pick_rpc(network_name: str) -> str:
     """
     Given a network return one of its RPCs, randomly,
     or None, if it has no RPC
     """
-    network = get_network_config(networkName)
+    network = get_network_config(network_name)
     rpcs = network.get("rpcs")
     return choice(rpcs) if rpcs else None
 
 
-def is_network_supported(networkName: str) -> bool:
+def is_network_supported(name: str) -> bool:
     """
-    Return true if the given network is supported by the client
+    Return true if the given network is supported by
+    the client factory
     """
     try:
-        get_network_config(networkName)
+        get_network_config(name)
         return True
     except NetworkNotFound:
         return False

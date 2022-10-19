@@ -12,3 +12,11 @@ class TransactionTooExpensive(Web3ClientException):
 
 class NetworkNotFound(Web3ClientException):
     pass
+
+
+class Erc20TokenNotFound(Web3ClientException):
+    pass
+
+
+class Erc20TokenNotUnique(Web3ClientException):
+    pass

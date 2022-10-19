@@ -106,3 +106,15 @@ class Erc20Client(BaseClient):
             tx["value"] = valueInWei
 
         return self.signAndSendTransaction(tx)
+
+    ####################
+    # Static
+    ####################
+
+    @staticmethod
+    def fromWei(amount: int, decimals: int) -> float:
+        """
+        Given an amount in Wei, return the equivalent amount in
+        ETH units
+        """
+        return amount / 10**decimals

@@ -2,6 +2,9 @@ from typing import List, TypedDict
 from typing_extensions import NotRequired
 from web3.types import Middleware
 
+NetworkName = str
+TokenName = str
+
 
 class NetworkConfig(TypedDict):
     """
@@ -9,8 +12,19 @@ class NetworkConfig(TypedDict):
     Avalanche, etc.
     """
 
-    name: str
+    name: NetworkName
     txType: int
     chainId: int
     middlewares: NotRequired[List[Middleware]]
     rpcs: NotRequired[List[str]]
+
+
+class Erc20TokenConfig(TypedDict):
+    """
+    Dictionary representing an ERC20 token
+    """
+
+    name: TokenName
+    network: NetworkName
+    address: str
+    decimals: int

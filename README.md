@@ -44,7 +44,9 @@ pytest tests
 
 # TO DO
 
-- Add more popular blockchains
-- Create human-friendly ERC20 token selector
-- Add ERC20 token examples
+- Test ERC20 read functions
+- Harmonize between camel case and snake case
+- Easy accessors for token and network props
+- Add BNB chain
+- Add write examples and tests
 - Add Uniswap V2 LP contracts
