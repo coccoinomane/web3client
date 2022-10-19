@@ -4,6 +4,7 @@ Easy to use Python client to interact with multiple EVM blockchain.
 
 - Easily create a client to interact with EVM-compatible chains.
 - Preconfigured for the most popular chains: Ethereum, Binance, Avalanche, Cronos, etc.
+- Support for ERC20 operations, using the token name (e.g. USDC) instead of address.
 - Exposes the underlying web3.py client to allow for more flexibility
 
 # Examples
@@ -13,14 +14,17 @@ Get the latest block on both Ethereum and Avalanche:
 ```python
 from web3factory.factory import make_client
 
-print(make_client('ethereum').getLatestBlock())
-print(make_client('avalanche').getLatestBlock())
+eth_block = make_client('ethereum').getLatestBlock()
+avax_block = make_client('avalanche').getLatestBlock()
 ```
 
-Use your RPC for better performance:
+Find the USDC balance of the Ethereum foundation:
 
 ```python
-print(make_client('ethereum', 'https://mainnet.infura.io/v3/<api-key>').getLatestBlock())
+from web3factory.factory import make_erc20_client
+
+ethereum_foundation = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
+usdc_balance = make_erc20_client("USDC", "ethereum").balanceOf(ethereum_foundation)
 ```
 
 # Install
