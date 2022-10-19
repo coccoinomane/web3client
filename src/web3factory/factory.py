@@ -2,12 +2,12 @@ from typing import Any, Type, cast
 from eth_typing import Address
 from web3client.Erc20Web3Client import Erc20Web3Client
 from web3client.Web3Client import Web3Client
-from web3factory.networks import get_network_config
+from web3factory.networks import get_network_config, pick_rpc
 
 
 def make_client(
     networkName: str,
-    nodeUri: str,
+    nodeUri: str = None,
     base: Type[Web3Client] = Web3Client,
     **clientArgs: Any
 ) -> Web3Client:
@@ -15,10 +15,12 @@ def make_client(
     Return a brand new client configured for the given blockchain
     """
     networkConfig = get_network_config(networkName)
+    if nodeUri is None:
+        nodeUri = pick_rpc(networkName)
     client = base(nodeUri=nodeUri, **clientArgs)
     client.chainId = networkConfig["chainId"]
     client.txType = networkConfig["txType"]
-    client.setMiddlewares(networkConfig["middlewares"])
+    client.setMiddlewares(networkConfig.get("middlewares", []))
 
     return client
 

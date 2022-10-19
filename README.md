@@ -6,6 +6,23 @@ Easy to use Python client to interact with multiple EVM blockchain.
 - Preconfigured for the most popular chains: Ethereum, Binance, Avalanche, Cronos, etc.
 - Exposes the underlying web3.py client to allow for more flexibility
 
+# Examples
+
+Get the latest block on both Ethereum and Avalanche:
+
+```python
+from web3factory.factory import make_client
+
+print(make_client('ethereum').getLatestBlock())
+print(make_client('avalanche').getLatestBlock())
+```
+
+Use your RPC for better performance:
+
+```python
+print(make_client('ethereum', 'https://mainnet.infura.io/v3/<api-key>').getLatestBlock())
+```
+
 # Install
 
 ```bash
@@ -27,7 +44,7 @@ pytest tests
 
 # TO DO
 
-- Add array of public RPCs for each network (like ethers.js does with getDefaultProvider)
-- Adjust tests to run automatically for all chains (or testnets) using public RPCs
 - Add more popular blockchains
 - Create human-friendly ERC20 token selector
+- Add ERC20 token examples
+- Add Uniswap V2 LP contracts

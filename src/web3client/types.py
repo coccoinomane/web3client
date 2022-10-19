@@ -1,4 +1,5 @@
 from typing import List, TypedDict
+from typing_extensions import NotRequired
 from web3.types import Middleware
 
 
@@ -11,4 +12,5 @@ class NetworkConfig(TypedDict):
     name: str
     txType: int
     chainId: int
-    middlewares: List[Middleware]
+    middlewares: NotRequired[List[Middleware]]
+    rpcs: NotRequired[List[str]]

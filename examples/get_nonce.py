@@ -1,16 +1,19 @@
 """
-Return the number of transactions sent by the given address
+Print the number of transactions sent by the given address
 """
+from sys import argv
+from web3client.helpers.general import secondOrNone
+from web3factory.factory import make_client
 
-from web3client.Web3Client import Web3Client
+network = secondOrNone(argv) or "ethereum"
 
-node_uri = "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79"
+client = make_client(network)
+
 address = input("Ethereum address? ")
 
 if len(address.replace("0x", "")) != 40:
     raise Exception("Please provide a valid Ethereum address")
 
-client = Web3Client(nodeUri=node_uri)
 nonce = client.getNonce(address)
 
 print(f">>> Transactions sent by {address}")

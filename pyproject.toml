@@ -1,6 +1,6 @@
 [project]
 name = "web3client"
-version = "0.1.7"
+version = "0.2.0"
 description = "Client to interact with multiple EVM blockchain"
 authors = [
     {name = "coccoinomane", email = "coccoinomane@gmail.com"},
