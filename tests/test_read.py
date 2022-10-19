@@ -1,15 +1,15 @@
 from typing import Dict
-from web3client.Web3Client import Web3Client
+from web3client.base_client import BaseClient
 
 
-def test_get_nonce(address: str, networks_clients: Dict[str, Web3Client]) -> None:
+def test_get_nonce(address: str, networks_clients: Dict[str, BaseClient]) -> None:
     for network, client in networks_clients.items():
         nonce = client.getNonce(address)
         assert type(nonce) is int
         assert nonce >= 0
 
 
-def test_get_latest_block(networks_clients: Dict[str, Web3Client]) -> None:
+def test_get_latest_block(networks_clients: Dict[str, BaseClient]) -> None:
     for network, client in networks_clients.items():
         block = client.getLatestBlock()
         assert type(block.get("number")) is int

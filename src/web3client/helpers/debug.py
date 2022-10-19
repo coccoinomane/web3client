@@ -1,12 +1,12 @@
 from typing import Any, Union
 from eth_typing.encoding import HexStr
-from web3client.Web3Client import Web3Client
+from web3client.base_client import BaseClient
 from web3.datastructures import AttributeDict
 from web3.types import TxReceipt
 import pprint
 
 
-def printTxInfo(client: Web3Client, txHash: HexStr) -> None:
+def printTxInfo(client: BaseClient, txHash: HexStr) -> None:
     """
     Get a transaction receipt and print it, together with
     the tx cost
@@ -18,7 +18,7 @@ def printTxInfo(client: Web3Client, txHash: HexStr) -> None:
     print(">>> TX IS ON THE BLOCKCHAIN :-)")
     pprint.pprint(tx_receipt)
     print(">>> ETH SPENT")
-    print(Web3Client.getGasSpentInEth(tx_receipt))
+    print(BaseClient.getGasSpentInEth(tx_receipt))
 
 
 def pprintAttributeDict(

@@ -15,7 +15,7 @@ from web3.types import Middleware, Wei
 from web3.gas_strategies import rpc
 
 
-class Web3Client:
+class BaseClient:
     """
     Client to interact with a blockchain, with smart contract
     support.
@@ -23,12 +23,13 @@ class Web3Client:
     The client is a wrapper intended to make the Web3 library
     easier to use.
 
-    There are two ways to use the client:
-    1. CUSTOM: Extend the Web3Client class to support different types of blockchains
-       and smart contracts.
-    2. AUTOMATIC: Use the 'make' methods in Web3ClientFactory.py to create
-       clients pre-configured for different blockchains and different
-       contracts.
+    There are three ways to use the base client class:
+    1. Instantiate an object representing a blockchain and, optionally,
+       a smart contract.
+    2. Specialize it by making a subclass. Override the parameters
+       to match the desired blockchain and, optionally, contract.
+    3. If the blockchain and contract you need to use is supported,
+       just use one of the 'make' methods in factory.py.
 
     Attributes
     ----------------------
@@ -431,7 +432,7 @@ class Web3Client:
         """
         checksum = Web3.toChecksumAddress(address)
         if abiFile:
-            abi = Web3Client.getContractAbiFromFile(abiFile)
+            abi = BaseClient.getContractAbiFromFile(abiFile)
         return provider.eth.contract(address=checksum, abi=abi)
 
     @staticmethod

@@ -3,7 +3,7 @@ Define shared state for all tests
 """
 from typing import Dict
 import pytest
-from web3client.Web3Client import Web3Client
+from web3client.base_client import BaseClient
 from web3factory.factory import make_client
 from web3factory.networks import supported_networks
 
@@ -30,7 +30,7 @@ def private_key() -> str:
 
 
 @pytest.fixture()
-def networks_clients(rpcs: Dict[str, str]) -> Dict[str, Web3Client]:
+def networks_clients(rpcs: Dict[str, str]) -> Dict[str, BaseClient]:
     """
     Ready-to-use clients, indexed by network name, no signer
     """

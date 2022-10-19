@@ -1,15 +1,17 @@
-from typing import Any, Union
 from eth_typing import Address, HexStr
 from web3 import Web3
 from web3.types import Wei
-from web3client.Web3Client import Web3Client
+from web3client.base_client import BaseClient
 from web3.types import TxParams, Nonce
 import os
 
 
-class Erc20Web3Client(Web3Client):
+class Erc20Client(BaseClient):
     """
     Client that comes with the ERC20 ABI preloaded.
+
+    Call the contract functions directly: transfer, balanceOf, name,
+    etc.
 
     AMOUNTS
     =======
@@ -23,8 +25,8 @@ class Erc20Web3Client(Web3Client):
       of 1 is equal to 1/10^18 of the token (a single wei).
     """
 
-    abiDir = os.path.dirname(os.path.realpath(__file__)) + "/contracts"
-    abi = Web3Client.getContractAbiFromFile(abiDir + "/erc20Abi.json")
+    abiDir = os.path.dirname(os.path.realpath(__file__)) + "/abi"
+    abi = BaseClient.getContractAbiFromFile(abiDir + "/erc20Abi.json")
 
     def __init__(
         self,
