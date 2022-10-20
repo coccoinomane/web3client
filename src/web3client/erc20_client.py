@@ -57,7 +57,7 @@ class Erc20Client(BaseClient):
         """
         Return the amount held by the given address
         """
-        return self.contract.functions.balanceOf(address).call()
+        return self.contract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
 
     def name(self) -> str:
         """

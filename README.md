@@ -23,8 +23,8 @@ Find the USDC balance of the Ethereum foundation:
 ```python
 from web3factory.factory import make_erc20_client
 
-ethereum_foundation = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
-usdc_balance = make_erc20_client("USDC", "ethereum").balanceOf(ethereum_foundation)
+address = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
+usdc_balance = make_erc20_client("USDC", "ethereum").balanceOf(address)
 ```
 
 # Install
