@@ -12,12 +12,27 @@ from web3factory.types import Erc20TokenConfig
 List of supported ERC20 tokens acrosso networks
 """
 supported_tokens: List[Erc20TokenConfig] = [
+    # Ethereum
     {
         "name": "USDC",
         "network": "ethereum",
         "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
         "decimals": 6,
     },
+    # Binance
+    {
+        "name": "BUSD",
+        "network": "binance",
+        "address": "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
+        "decimals": 18,
+    },
+    {
+        "name": "BETH",
+        "network": "binance",
+        "address": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
+        "decimals": 18,
+    },
+    # Avalanche
     {
         "name": "USDC",
         "network": "avalanche",
@@ -35,7 +50,7 @@ def get_token_config(name: str, network: str) -> Erc20TokenConfig:
     """
     # Raise if network does not exist
     if not is_network_supported(network):
-        raise NetworkNotFound(f"Network '{name}' not supported")
+        raise NetworkNotFound(f"Network '{network}' not supported")
     # Get all tokens with given name and network
     tokens: List[Erc20TokenConfig] = [
         t for t in supported_tokens if t["name"] == name and t["network"] == network

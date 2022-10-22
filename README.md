@@ -9,22 +9,26 @@ Easy to use Python client to interact with multiple EVM blockchain.
 
 # Examples
 
-Get the latest block on both Ethereum and Avalanche:
+Get the latest block on both Ethereum, BNB Chain and Avalanche:
 
 ```python
 from web3factory.factory import make_client
 
 eth_block = make_client('ethereum').getLatestBlock()
+bnb_block = make_client('binance').getLatestBlock()
 avax_block = make_client('avalanche').getLatestBlock()
 ```
 
-Find the USDC balance of the Ethereum foundation:
+Get the USDC balance of the Ethereum foundation, and the BUSD balance of Binance's hot wallet:
 
 ```python
 from web3factory.factory import make_erc20_client
 
-address = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
-usdc_balance = make_erc20_client("USDC", "ethereum").balanceOf(address)
+ef_address = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
+ef_usdc = make_erc20_client("USDC", "ethereum").balanceOf(ef_address) / 10**6
+
+bw_address = "0x8894e0a0c962cb723c1976a4421c95949be2d4e3"
+bw_busd = make_erc20_client("BUSD", "binance").balanceOf(bw_address) / 10**18
 ```
 
 # Install
@@ -51,6 +55,5 @@ pytest tests
 - Test ERC20 read functions
 - Harmonize between camel case and snake case
 - Easy accessors for token and network props
-- Add BNB chain
 - Add write examples and tests
 - Add Uniswap V2 LP contracts

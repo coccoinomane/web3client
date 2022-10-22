@@ -23,6 +23,17 @@ supported_networks: List[NetworkConfig] = [
     },
     # Avalanche C Chain
     {
+        "name": "binance",
+        "txType": 2,
+        "chainId": 56,
+        "middlewares": [geth_poa_middleware],
+        "rpcs": [
+            "https://bsc-dataseed.binance.org/",
+            "https://bsc--mainnet--rpc.datahub.figment.io/apikey/1e03acdcb04656b9412009ac14b1a201",
+        ],
+    },
+    # Avalanche C Chain
+    {
         "name": "avalanche",
         "txType": 2,
         "chainId": 43114,
