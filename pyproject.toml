@@ -1,7 +1,7 @@
 [project]
 name = "web3client"
 version = "0.3.4"
-description = "Client to interact with multiple EVM blockchain"
+description = "Batteries-included client to interact with blockchains and smart contracts"
 authors = [
     {name = "coccoinomane", email = "coccoinomane@gmail.com"},
 ]
@@ -21,13 +21,12 @@ dev = [
 ]
 
 [tool.pdm.scripts]
-test = "pytest tests"
+test = "python -m pytest tests"
 publish_test = "pdm publish -r ${PDM_PUBLISH_TEST_REPO} -u ${PDM_PUBLISH_TEST_USERNAME} -P ${PDM_PUBLISH_TEST_PASSWORD}"
 
-
 [project.urls]
-homepage = "https://github.com/coccoinomane/web3client.py"
-repository = "https://github.com/coccoinomane/web3client.py"
+homepage = "https://github.com/coccoinomane/web3client"
+repository = "https://github.com/coccoinomane/web3client"
 
 [project.optional-dependencies]
 [tool.pdm]

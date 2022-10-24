@@ -1,10 +1,10 @@
-Easy to use Python client to interact with multiple EVM blockchain.
+Batteries-included client to interact with blockchains and smart contracts
 
 # Features
 
 - Easily create a client to interact with EVM-compatible chains.
-- Preconfigured for the most popular chains: Ethereum, Binance, Avalanche, Cronos, etc.
 - Support for ERC20 operations, using the token name (e.g. USDC) instead of address.
+- Preconfigured for the most popular chains: Ethereum, Binance, Avalanche and more to come!
 - Exposes the underlying web3.py client to allow for more flexibility
 
 # Examples
