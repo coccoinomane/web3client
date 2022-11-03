@@ -415,6 +415,12 @@ class BaseClient:
             }
         )
 
+    def getBalanceInWei(self, address: Address = None) -> Wei:
+        return self.w3.eth.get_balance(Web3.toChecksumAddress(address))
+
+    def getBalanceInEth(self, address: Address = None) -> float:
+        return float(Web3.fromWei(self.getBalanceInWei(address), "ether"))
+
     ####################
     # Static
     ####################

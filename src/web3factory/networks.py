@@ -20,6 +20,7 @@ supported_networks: List[NetworkConfig] = [
             "https://mainnet.infura.io/v3/98c23dcc2c3947cbacc2a0c7e1b1757a",
             "https://ethereum-mainnet--rpc.datahub.figment.io/apikey/cfd6d301706d81d97fd78bced8211f27",
         ],
+        "coin": "ETH",
     },
     # Avalanche C Chain
     {
@@ -31,6 +32,7 @@ supported_networks: List[NetworkConfig] = [
             "https://bsc-dataseed.binance.org/",
             "https://bsc--mainnet--rpc.datahub.figment.io/apikey/1e03acdcb04656b9412009ac14b1a201",
         ],
+        "coin": "BNB",
     },
     # Avalanche C Chain
     {
@@ -42,6 +44,7 @@ supported_networks: List[NetworkConfig] = [
             "https://avalanche-mainnet.infura.io/v3/98c23dcc2c3947cbacc2a0c7e1b1757a",
             "https://avalanche--mainnet--rpc.datahub.figment.io/apikey/cfd6d301706d81d97fd78bced8211f27/ext/bc/C/rpc",
         ],
+        "coin": "AVAX",
     },
     # Swimmer Network Avalanche subnet
     {
@@ -50,6 +53,7 @@ supported_networks: List[NetworkConfig] = [
         "chainId": 73772,
         "middlewares": [geth_poa_middleware],
         "rpcs": ["https://avax-cra-rpc.gateway.pokt.network"],
+        "coin": "TUS",
     },
 ]
 

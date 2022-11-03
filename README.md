@@ -19,17 +19,29 @@ bnb_block = make_client('binance').getLatestBlock()
 avax_block = make_client('avalanche').getLatestBlock()
 ```
 
-Get the USDC balance of the Ethereum foundation, and the BUSD balance of Binance's hot wallet:
+Get the ETH and USDC balances of the Ethereum foundation:
 
 ```python
-from web3factory.factory import make_erc20_client
+from web3factory.factory import make_client, make_erc20_client
 
-ef_address = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
-ef_usdc = make_erc20_client("USDC", "ethereum").balanceOf(ef_address) / 10**6
-
-bw_address = "0x8894e0a0c962cb723c1976a4421c95949be2d4e3"
-bw_busd = make_erc20_client("BUSD", "binance").balanceOf(bw_address) / 10**18
+address = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
+eth = make_client("ethereum").getBalanceInEth(address)
+usdc = make_erc20_client("USDC", "ethereum").balanceOf(address) / 10**6
 ```
+
+Get the BNB and BUSD balances of Binance's hot wallet:
+
+```python
+from web3factory.factory import make_client, make_erc20_client
+
+address = "0x8894e0a0c962cb723c1976a4421c95949be2d4e3"
+bnb = make_client("binance").getBalanceInEth(address)
+busd = make_erc20_client("BUSD", "binance").balanceOf(address) / 10**18
+```
+
+### More examples
+
+Please have a look at the [examples folder](./examples) 🙂
 
 # Install
 
@@ -62,12 +74,13 @@ Pull requests are welcome!
    ```
 4. To run tests:
    ```bash
-   pytest tests
+   pdm test
    ```
 
 # TO DO
 
 - Test ERC20 read functions
+- Automatically convert addresses to checksum
 - Harmonize between camel case and snake case
 - Easy accessors for token and network props
 - Add write examples and tests

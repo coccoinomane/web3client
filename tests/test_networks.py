@@ -19,3 +19,10 @@ def test_get_latest_block(networks_clients: Dict[str, BaseClient]) -> None:
         assert type(block.get("difficulty")) is int
         assert block.get("difficulty") >= 0
         assert type(block.get("transactions")) is list
+
+
+def test_get_eth_balance(address: str, networks_clients: Dict[str, BaseClient]) -> None:
+    for network, client in networks_clients.items():
+        balance = client.getBalanceInWei(address)
+        assert type(balance) is int
+        assert balance >= 0

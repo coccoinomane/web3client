@@ -17,6 +17,7 @@ class NetworkConfig(TypedDict):
     chainId: int
     middlewares: NotRequired[List[Middleware]]
     rpcs: NotRequired[List[str]]
+    coin: str
 
 
 class Erc20TokenConfig(TypedDict):
