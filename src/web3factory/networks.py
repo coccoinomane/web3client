@@ -41,6 +41,7 @@ supported_networks: List[NetworkConfig] = [
         "chainId": 43114,
         "middlewares": [geth_poa_middleware],
         "rpcs": [
+            "https://api.avax.network/ext/bc/C/rpc",
             "https://avalanche-mainnet.infura.io/v3/98c23dcc2c3947cbacc2a0c7e1b1757a",
             "https://avalanche--mainnet--rpc.datahub.figment.io/apikey/cfd6d301706d81d97fd78bced8211f27/ext/bc/C/rpc",
         ],

@@ -1,11 +1,12 @@
 import json
 from typing import Any, List, Tuple, cast, Union
 from eth_account import Account
+from eth_account.messages import encode_defunct
 from eth_account.signers.local import LocalAccount
 from eth_typing import Address
 from hexbytes import HexBytes
 from web3 import Web3
-from eth_account.datastructures import SignedTransaction
+from eth_account.datastructures import SignedTransaction, SignedMessage
 from web3.contract import ContractFunction
 from web3.types import BlockData, Nonce, TxParams, TxReceipt, TxData
 from eth_typing.encoding import HexStr
@@ -312,6 +313,26 @@ class BaseClient:
             to, valueInWei, nonce, gasLimit, maxPriorityFeePerGasInGwei
         )
         return self.signAndSendTransaction(tx)
+
+    ####################
+    # Messages
+    ####################
+
+    def signMessage(self, msg: str) -> SignedMessage:
+        """Sign the given message and return the signed message.
+        NB: The method uses the 'defunct' encoding for the message, see
+        https://eth-account.readthedocs.io/en/stable/eth_account.html
+        for more details"""
+        msgHash = encode_defunct(text=msg)
+        return self.w3.eth.account.sign_message(msgHash, self.privateKey)
+
+    def isMessageSignedByMe(self, msg: str, signedMessage: SignedMessage) -> bool:
+        """Return true if the given defunct-encoded message was signed by me"""
+        msgHash = encode_defunct(text=msg)
+        signerAddress = self.w3.eth.account.recover_message(
+            msgHash, signature=signedMessage.signature
+        )
+        return signerAddress == self.userAddress
 
     ####################
     # Watch
