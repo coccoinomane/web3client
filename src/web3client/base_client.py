@@ -136,7 +136,6 @@ class BaseClient:
 
         # Properties that you are not likely to change
         tx: TxParams = {
-            "type": self.txType,
             "chainId": self.chainId,
             "from": self.userAddress,
         }
@@ -152,6 +151,7 @@ class BaseClient:
 
         # Post EIP-1599, we have both the miner's tip and the max fee.
         elif self.txType == 2:
+            tx["type"] = self.txType
 
             # The miner tip is user-provided
             maxPriorityFeePerGasInGwei = (
