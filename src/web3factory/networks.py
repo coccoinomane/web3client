@@ -25,7 +25,7 @@ supported_networks: List[NetworkConfig] = [
     # Avalanche C Chain
     {
         "name": "binance",
-        "txType": 2,
+        "txType": 1,
         "chainId": 56,
         "middlewares": [geth_poa_middleware],
         "rpcs": [
