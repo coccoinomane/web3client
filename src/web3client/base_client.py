@@ -14,7 +14,7 @@ from web3client.exceptions import TransactionTooExpensive
 from web3.contract import Contract
 from web3.types import Middleware, Wei
 from web3.gas_strategies import rpc
-
+from web3.types import BlockIdentifier, CallOverrideParams
 
 class BaseClient:
     """
@@ -51,6 +51,7 @@ class BaseClient:
     account: LocalAccount = None | Account object for the user
     userAddress: Address = None | Address of the user
     contract: Contract = None | Contract object of web3.py
+    functions: ContractFunctions = None | ContractFunctions object of web3.py
     """
 
     def __init__(
@@ -106,6 +107,7 @@ class BaseClient:
         )
         self.abi: dict[str, Any] = abi
         self.contract = self.getContract(contractAddress, self.w3, abi=abi)
+        self.functions = self.contract.functions
 
     def setMiddlewares(self, middlewares: List[Middleware]) -> None:
         self.middlewares: List[Middleware] = middlewares
@@ -403,7 +405,7 @@ class BaseClient:
             )
 
     ####################
-    # Utils
+    # Read
     ####################
 
     def getNonce(self, address: Address = None) -> Nonce:
@@ -443,7 +445,56 @@ class BaseClient:
         return float(Web3.fromWei(self.getBalanceInWei(address), "ether"))
 
     ####################
-    # Static
+    # Contract
+    ####################
+
+    def call(
+        self,
+        function: ContractFunction,
+        tx: TxParams = None,
+        blockIdentifier: BlockIdentifier = 'latest',
+        stateOverride: CallOverrideParams = None
+    ) -> Any:
+        """
+        Execute a contract function call using the eth_call interface.
+        This won't write to the blockchain.
+
+        Example: get the balance of an address for an ERC20 token:
+            client.call(
+                client.functions.balanceOf(address)
+            )
+        """
+        return function.call(tx, blockIdentifier, stateOverride)
+
+    def transact(
+        self,
+        function: ContractFunction,
+        valueInWei: Wei = None,
+        nonce: Nonce = None,
+        gasLimit: int = None,
+        maxPriorityFeePerGasInGwei: int = None,
+    ) -> HexStr:
+        """
+        Execute a contract function.
+        This will write to the blockchain.
+
+        Example: transfer some tokens to the given address:
+            client.transact(
+                client.functions.transfer(address, amount)
+            )
+        """
+        tx: TxParams = self.buildContractTransaction(
+            function,
+            valueInWei,
+            nonce,
+            gasLimit,
+            maxPriorityFeePerGasInGwei
+        )
+        return self.signAndSendTransaction(tx)
+
+
+    ####################
+    # Utils
     ####################
 
     @staticmethod
