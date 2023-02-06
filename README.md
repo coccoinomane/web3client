@@ -1,11 +1,12 @@
-Batteries-included client to interact with blockchains and smart contracts.
+Batteries-included client to interact with blockchains and smart contracts; used by [`web3cli`](https://github.com/coccoinomane/web3cli) and [crabada.py](https://github.com/coccoinomane/crabada.py).
 
 # Features
 
-- Easily create a client to interact with EVM-compatible chains.
-- Support for ERC20 operations, using the token name (e.g. USDC) instead of address.
-- Preconfigured for the most popular chains: Ethereum, Binance, Avalanche and more to come!
-- Exposes the underlying web3.py client to allow for more flexibility
+- Easily create a client to interact with EVM-compatible chains
+- Perform ERC20 operations, using the token name (e.g. USDC) instead of address.
+- Interact with the most popular chains: Ethereum, Binance, Avalanche and more to come!
+- Save gas by setting an upper limit on the base fee.
+- Need more flexibility? Use directly the underlying web3.py client.
 
 # Examples
 
