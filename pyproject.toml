@@ -1,6 +1,6 @@
 [project]
 name = "web3client"
-version = "0.5.0"
+version = "0.5.1"
 description = "Batteries-included client to interact with blockchains and smart contracts"
 authors = [
     {name = "coccoinomane", email = "coccoinomane@gmail.com"},
