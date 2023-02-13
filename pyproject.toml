@@ -12,12 +12,15 @@ requires-python = ">=3.7.2,<3.11"
 dependencies = [
     "web3>=5.31.1,<6.0.0",
     "eth-typing>=2.3.0",
+    "setuptools>=67.2.0",
 ]
 
 [tool.pdm.dev-dependencies]
 dev = [
     "pytest>=6",
     "mypy>=0.982",
+    "isort>=5.11.3",
+    "black>=22.10",
 ]
 
 [tool.pdm.scripts]
@@ -59,3 +62,12 @@ disallow_untyped_calls = true
 exclude = [
     '__pypackages__',
 ]
+
+[tool.isort]
+profile = "black"
+src_paths = ["src", "tests"]
+
+[tool.autoflake]
+in_place = true
+remove_all_unused_imports = true
+ignore_pass_after_docstring = true

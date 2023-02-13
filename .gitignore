@@ -25,3 +25,4 @@ pypi-*/
 # other
 .vscode/settings.json
 venv/
+.venv/
