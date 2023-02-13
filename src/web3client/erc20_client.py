@@ -1,9 +1,10 @@
+import os
+
 from eth_typing import Address, HexStr
 from web3 import Web3
-from web3.types import Wei
+from web3.types import Nonce, TxParams, Wei
+
 from web3client.base_client import BaseClient
-from web3.types import TxParams, Nonce
-import os
 
 
 class Erc20Client(BaseClient):
@@ -26,26 +27,26 @@ class Erc20Client(BaseClient):
     """
 
     abiDir = os.path.dirname(os.path.realpath(__file__)) + "/abi"
-    abi = BaseClient.getContractAbiFromFile(abiDir + "/erc20Abi.json")
+    abi = BaseClient.get_contract_abi_from_file(abiDir + "/erc20.json")
 
     def __init__(
         self,
-        nodeUri: str,
-        chainId: int = None,
-        txType: int = 2,
-        privateKey: str = None,
-        maxPriorityFeePerGasInGwei: float = 1,
-        upperLimitForBaseFeeInGwei: float = float("inf"),
-        contractAddress: Address = None,
+        node_uri: str,
+        chain_id: int = None,
+        tx_type: int = 2,
+        private_key: str = None,
+        max_priority_fee_in_gwei: float = 1,
+        upper_limit_for_base_fee_in_gwei: float = float("inf"),
+        contract_address: Address = None,
     ) -> None:
         super().__init__(
-            nodeUri,
-            chainId,
-            txType,
-            privateKey,
-            maxPriorityFeePerGasInGwei,
-            upperLimitForBaseFeeInGwei,
-            contractAddress,
+            node_uri,
+            chain_id,
+            tx_type,
+            private_key,
+            max_priority_fee_in_gwei,
+            upper_limit_for_base_fee_in_gwei,
+            contract_address,
             self.abi,
         )
 
@@ -88,24 +89,24 @@ class Erc20Client(BaseClient):
     ####################
 
     def transfer(
-        self, to: Address, amount: int, nonce: Nonce = None, valueInWei: Wei = Wei(0)
+        self, to: Address, amount: int, nonce: Nonce = None, value_in_wei: Wei = Wei(0)
     ) -> HexStr:
         """
         Transfer some amount of the token to an address; does not
         require approval.
         """
 
-        tx: TxParams = self.buildContractTransaction(
+        tx: TxParams = self.build_contract_tx(
             self.contract.functions.transfer(Web3.toChecksumAddress(to), amount)
         )
 
         if nonce:
             tx["nonce"] = nonce
 
-        if valueInWei:
-            tx["value"] = valueInWei
+        if value_in_wei:
+            tx["value"] = value_in_wei
 
-        return self.signAndSendTransaction(tx)
+        return self.sign_and_send_tx(tx)
 
     ####################
     # Static

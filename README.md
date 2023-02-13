@@ -15,9 +15,9 @@ Get the latest block on both Ethereum, BNB Chain and Avalanche:
 ```python
 from web3factory.factory import make_client
 
-eth_block = make_client('ethereum').getLatestBlock()
-bnb_block = make_client('binance').getLatestBlock()
-avax_block = make_client('avalanche').getLatestBlock()
+eth_block = make_client('ethereum').get_latest_block()
+bnb_block = make_client('binance').get_latest_block()
+avax_block = make_client('avalanche').get_latest_block()
 ```
 
 Get the ETH and USDC balances of the Ethereum foundation:
@@ -26,7 +26,7 @@ Get the ETH and USDC balances of the Ethereum foundation:
 from web3factory.factory import make_client, make_erc20_client
 
 address = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
-eth = make_client("ethereum").getBalanceInEth(address)
+eth = make_client("ethereum").get_balance_in_eth(address)
 usdc = make_erc20_client("USDC", "ethereum").balanceOf(address) / 10**6
 ```
 
@@ -36,7 +36,7 @@ Get the BNB and BUSD balances of Binance's hot wallet:
 from web3factory.factory import make_client, make_erc20_client
 
 address = "0x8894e0a0c962cb723c1976a4421c95949be2d4e3"
-bnb = make_client("binance").getBalanceInEth(address)
+bnb = make_client("binance").get_balance_in_eth(address)
 busd = make_erc20_client("BUSD", "binance").balanceOf(address) / 10**18
 ```
 

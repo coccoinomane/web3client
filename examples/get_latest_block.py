@@ -10,7 +10,7 @@ network = secondOrNone(argv) or "ethereum"
 
 client = make_client(network)
 
-block = client.getLatestBlock()
+block = client.get_latest_block()
 
 print(f">>> Latest block")
 pprintAttributeDict(block)
