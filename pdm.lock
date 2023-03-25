@@ -99,15 +99,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "brownie-token-tester"
-version = "0.3.2"
-requires_python = ">=3.6,<4"
-summary = "Helper objects for generating ERC20s while testing a Brownie project."
-dependencies = [
-    "eth-brownie<2.0.0,>=1.11.6",
-]
-
-[[package]]
 name = "cached-property"
 version = "1.5.2"
 summary = "A decorator for caching properties in classes."
@@ -952,7 +943,7 @@ summary = "Backport of pathlib-compatible object wrapper for zip files"
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:d00c769064d2cd3b58a75cf0247f6cb7ae7feae3d9ad5a15f167a2694f6917ac"
+content_hash = "sha256:b6e5776a65e1f55b5661fd018935b83ef121f7ebb37563a0e1eb2ef9ec9dd0f6"
 
 [metadata.files]
 "aiohttp 3.8.3" = [
@@ -1171,10 +1162,6 @@ content_hash = "sha256:d00c769064d2cd3b58a75cf0247f6cb7ae7feae3d9ad5a15f167a2694
     {url = "https://files.pythonhosted.org/packages/e3/b4/9203f1a0c99aa30389b61fa8cb54bc9f4bf16ac3aa74630c6b974ed3f3b0/black-22.10.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1e464456d24e23d11fced2bc8c47ef66d471f845c7b7a42f3bd77bf3d1789650"},
     {url = "https://files.pythonhosted.org/packages/f2/23/f4278377cabf882298b4766e977fd04377f288d1ccef706953076a1e0598/black-22.10.0-1fixedarch-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:e41a86c6c650bcecc6633ee3180d80a025db041a8e2398dcc059b3afa8382cd4"},
     {url = "https://files.pythonhosted.org/packages/ff/ce/22281871536b3d79474fd44d48dad48f7cbc5c3982bddf6a7495e7079d00/black-22.10.0-cp310-cp310-win_amd64.whl", hash = "sha256:819dc789f4498ecc91438a7de64427c73b45035e2e3680c92e18795a839ebb66"},
-]
-"brownie-token-tester 0.3.2" = [
-    {url = "https://files.pythonhosted.org/packages/97/d8/2de2104e9a3d6eee300dca89213d87bbcb39bee995191e99909d5252035f/brownie_token_tester-0.3.2-py3-none-any.whl", hash = "sha256:d741630c3561f4cdb60c6e779fc7f4888b0106841958b6aa2525c122f774bf8b"},
-    {url = "https://files.pythonhosted.org/packages/ce/72/56557351f76a620bf118b8dccaa68c63e79055bdf6d72bb19ce4507bfbdf/brownie-token-tester-0.3.2.tar.gz", hash = "sha256:e3a131293f2ac2c230707c6d0f18e930eebdd27f05a40c05f230db7c2039bf0b"},
 ]
 "cached-property 1.5.2" = [
     {url = "https://files.pythonhosted.org/packages/48/19/f2090f7dad41e225c7f2326e4cfe6fff49e57dedb5b53636c9551f86b069/cached_property-1.5.2-py2.py3-none-any.whl", hash = "sha256:df4f613cf7ad9a588cc381aaf4a512d26265ecebd5eb9e1ba12f1319eb85a6a0"},

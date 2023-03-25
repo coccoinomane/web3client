@@ -13,6 +13,7 @@ dependencies = [
     "web3>=5.31.1,<6.0.0",
     "eth-typing>=2.3.0",
     "setuptools>=67.2.0",
+    "typing-extensions>=4.4.0",
 ]
 
 [tool.pdm.dev-dependencies]
@@ -22,7 +23,6 @@ dev = [
     "eth-brownie>=1.19.2",
     "isort>=5.11.3",
     "pre-commit>=2.20.0",
-    "brownie-token-tester>=0.3.2",
     "autoflake>=2.0.0",
     "black>=22.10",
 ]
