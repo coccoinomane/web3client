@@ -128,7 +128,7 @@ class BaseClient:
     # Build Tx
     ####################
 
-    def build_base_transaction(
+    def build_base_tx(
         self,
         nonce: Nonce = None,
         gas_limit: int = None,
@@ -191,7 +191,7 @@ class BaseClient:
 
         return tx
 
-    def build_transaction_with_value(
+    def build_tx_with_value(
         self,
         to: Address,
         value_in_eth: float,
@@ -204,11 +204,11 @@ class BaseClient:
         where the value is expressed in the blockchain token (e.g. ETH or AVAX).
         """
         value_in_wei = self.w3.toWei(value_in_eth, "ether")
-        return self.build_transaction_with_value_in_wei(
+        return self.build_tx_with_value_in_wei(
             to, value_in_wei, nonce, gas_limit, max_priority_fee_in_gwei
         )
 
-    def build_transaction_with_value_in_wei(
+    def build_tx_with_value_in_wei(
         self,
         to: Address,
         value_in_wei: Wei,
@@ -220,7 +220,7 @@ class BaseClient:
         Build a transaction involving a transfer of value (in Wei) to an address,
         where the value is expressed in the blockchain token (e.g. ETH or AVAX).
         """
-        tx = self.build_base_transaction(
+        tx = self.build_base_tx(
             nonce,
             gas_limit,
             max_priority_fee_in_gwei,
@@ -246,7 +246,7 @@ class BaseClient:
         Requires passing the contract function as detailed in the docs:
         https://web3py.readthedocs.io/en/stable/web3.eth.account.html#sign-a-contract-transaction
         """
-        base_tx = self.build_base_transaction(
+        base_tx = self.build_base_tx(
             nonce,
             gas_limit,
             max_priority_fee_in_gwei,
@@ -305,7 +305,7 @@ class BaseClient:
         """
         Send ETH to the given address
         """
-        tx = self.build_transaction_with_value(
+        tx = self.build_tx_with_value(
             to, value_in_eth, nonce, gas_limit, max_priority_fee_in_gwei
         )
         return self.sign_and_send_tx(tx)
@@ -321,7 +321,7 @@ class BaseClient:
         """
         Send ETH (in Wei) to the given address
         """
-        tx = self.build_transaction_with_value_in_wei(
+        tx = self.build_tx_with_value_in_wei(
             to, value_in_wei, nonce, gas_limit, max_priority_fee_in_gwei
         )
         return self.sign_and_send_tx(tx)
