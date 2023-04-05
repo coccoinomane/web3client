@@ -14,7 +14,7 @@ parameters.
 supported_networks: List[NetworkConfig] = [
     # Ethereum
     {
-        "name": "eth",
+        "name": "ethereum",
         "tx_type": 2,
         "chain_id": 1,
         "rpcs": [
@@ -50,6 +50,14 @@ supported_networks: List[NetworkConfig] = [
         "tx_type": 2,
         "chain_id": 42161,
         "rpcs": ["https://arb1.arbitrum.io/rpc"],
+        "coin": "ETH",
+    },
+    # zkSync Era
+    {
+        "name": "era",
+        "tx_type": 2,
+        "chain_id": 324,
+        "rpcs": ["https://mainnet.era.zksync.io"],
         "coin": "ETH",
     },
 ]
