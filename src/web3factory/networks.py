@@ -14,7 +14,7 @@ parameters.
 supported_networks: List[NetworkConfig] = [
     # Ethereum
     {
-        "name": "ethereum",
+        "name": "eth",
         "tx_type": 2,
         "chain_id": 1,
         "rpcs": [
@@ -44,14 +44,13 @@ supported_networks: List[NetworkConfig] = [
         ],
         "coin": "AVAX",
     },
-    # Swimmer Network Avalanche subnet
+    # Arbitrum One
     {
-        "name": "swimmer",
-        "tx_type": 1,
-        "chain_id": 73772,
-        "middlewares": [geth_poa_middleware],
-        "rpcs": ["https://avax-cra-rpc.gateway.pokt.network"],
-        "coin": "TUS",
+        "name": "arbitrum",
+        "tx_type": 2,
+        "chain_id": 42161,
+        "rpcs": ["https://arb1.arbitrum.io/rpc"],
+        "coin": "ETH",
     },
 ]
 
