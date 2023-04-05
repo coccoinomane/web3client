@@ -187,7 +187,7 @@ class BaseClient:
         # For more details, see docs of ContractFunction.transact in
         # https://web3py.readthedocs.io/en/stable/contracts.html
         if gas_limit is not None:
-            tx["gas"] = gas_limit  # type: ignore
+            tx["gas"] = gas_limit
 
         return tx
 
@@ -228,7 +228,7 @@ class BaseClient:
         extra_params: TxParams = {
             "to": to,
             "value": value_in_wei,
-            "gas": self.estimate_gas_for_transfer(to, value_in_wei),  # type: ignore
+            "gas": self.estimate_gas_for_transfer(to, value_in_wei),
         }
         return tx | extra_params
 

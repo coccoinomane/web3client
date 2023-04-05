@@ -4,7 +4,7 @@ Batteries-included client to interact with blockchains and smart contracts; used
 
 - Easily create a client to interact with EVM-compatible chains
 - Perform ERC20 operations, using the token name (e.g. USDC) instead of address.
-- Interact with the most popular chains: Ethereum, Binance, Avalanche and more to come!
+- Interact with the most popular chains: Ethereum, Binance, Avalanche, Arbitrum One, zkSync Era, and more to come!
 - Save gas by setting an upper limit on the base fee.
 - Need more flexibility? Use directly the underlying web3.py client.
 
@@ -21,9 +21,11 @@ Get the latest block on both Ethereum, BNB Chain and Avalanche:
 ```python
 from web3factory.factory import make_client
 
-eth_block = make_client('ethereum').get_latest_block()
-bnb_block = make_client('binance').get_latest_block()
-avax_block = make_client('avalanche').get_latest_block()
+eth_block = make_client("eth").get_latest_block()
+bnb_block = make_client("bnb").get_latest_block()
+avax_block = make_client("avax").get_latest_block()
+arb_block = make_client("arb").get_latest_block()
+era_block = make_client("era").get_latest_block()
 ```
 
 Get the ETH and USDC balances of the Ethereum foundation:
@@ -32,8 +34,8 @@ Get the ETH and USDC balances of the Ethereum foundation:
 from web3factory.factory import make_client, make_erc20_client
 
 address = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
-eth = make_client("ethereum").get_balance_in_eth(address)
-usdc = make_erc20_client("USDC", "ethereum").balanceOf(address) / 10**6
+eth = make_client("eth").get_balance_in_eth(address)
+usdc = make_erc20_client("USDC", "eth").balanceOf(address) / 10**6
 ```
 
 Get the BNB and BUSD balances of Binance's hot wallet:
@@ -42,8 +44,8 @@ Get the BNB and BUSD balances of Binance's hot wallet:
 from web3factory.factory import make_client, make_erc20_client
 
 address = "0x8894e0a0c962cb723c1976a4421c95949be2d4e3"
-bnb = make_client("binance").get_balance_in_eth(address)
-busd = make_erc20_client("BUSD", "binance").balanceOf(address) / 10**18
+bnb = make_client("bnb").get_balance_in_eth(address)
+busd = make_erc20_client("BUSD", "bnb").balanceOf(address) / 10**18
 ```
 
 ### More examples

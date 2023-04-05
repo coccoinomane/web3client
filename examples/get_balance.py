@@ -12,7 +12,7 @@ address = secondOrNone(argv)
 if not address:
     raise Exception("Please give me a user address")
 
-network = thirdOrNone(argv) or "ethereum"
+network = thirdOrNone(argv) or "eth"
 
 client = make_client(network)
 

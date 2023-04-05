@@ -1,4 +1,5 @@
 from typing import List
+
 from web3client.exceptions import (
     Erc20TokenNotFound,
     Erc20TokenNotUnique,
@@ -7,7 +8,6 @@ from web3client.exceptions import (
 from web3factory.networks import is_network_supported
 from web3factory.types import Erc20TokenConfig
 
-
 """
 List of supported ERC20 tokens acrosso networks
 """
@@ -15,27 +15,27 @@ supported_tokens: List[Erc20TokenConfig] = [
     # Ethereum
     {
         "name": "USDC",
-        "network": "ethereum",
+        "network": "eth",
         "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
         "decimals": 6,
     },
     # Binance
     {
         "name": "BUSD",
-        "network": "binance",
+        "network": "bnb",
         "address": "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56",
         "decimals": 18,
     },
     {
         "name": "BETH",
-        "network": "binance",
+        "network": "bnb",
         "address": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
         "decimals": 18,
     },
     # Avalanche
     {
         "name": "USDC",
-        "network": "avalanche",
+        "network": "avax",
         "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
         "decimals": 6,
     },

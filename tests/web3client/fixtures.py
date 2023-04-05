@@ -14,7 +14,7 @@ def rpcs() -> Dict[str, str]:
     are throttled
     """
     return {
-        "ethereum": "https://mainnet.infura.io/v3/db0e363aad2f43ee8a2f259733721512",
+        "eth": "https://mainnet.infura.io/v3/db0e363aad2f43ee8a2f259733721512",
     }
 
 
@@ -39,3 +39,13 @@ def networks_clients(rpcs: Dict[str, str]) -> Dict[str, BaseClient]:
         node_uri = rpcs.get(name)
         clients[name] = make_client(name, node_uri)
     return clients
+
+
+@pytest.fixture()
+def eth_client(rpcs: Dict[str, str]) -> BaseClient:
+    return make_client("bnb")
+
+
+@pytest.fixture()
+def bnb_client(rpcs: Dict[str, str]) -> BaseClient:
+    return make_client("bnb")

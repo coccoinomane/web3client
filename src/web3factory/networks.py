@@ -14,7 +14,7 @@ parameters.
 supported_networks: List[NetworkConfig] = [
     # Ethereum
     {
-        "name": "ethereum",
+        "name": "eth",
         "tx_type": 2,
         "chain_id": 1,
         "rpcs": [
@@ -24,7 +24,7 @@ supported_networks: List[NetworkConfig] = [
     },
     # Avalanche C Chain
     {
-        "name": "binance",
+        "name": "bnb",
         "tx_type": 1,
         "chain_id": 56,
         "middlewares": [geth_poa_middleware],
@@ -35,7 +35,7 @@ supported_networks: List[NetworkConfig] = [
     },
     # Avalanche C Chain
     {
-        "name": "avalanche",
+        "name": "avax",
         "tx_type": 2,
         "chain_id": 43114,
         "middlewares": [geth_poa_middleware],
@@ -46,7 +46,7 @@ supported_networks: List[NetworkConfig] = [
     },
     # Arbitrum One
     {
-        "name": "arbitrum",
+        "name": "arb",
         "tx_type": 2,
         "chain_id": 42161,
         "rpcs": ["https://arb1.arbitrum.io/rpc"],

@@ -2,9 +2,10 @@
 Return the token balance of the given address
 """
 from sys import argv
+
+from web3client.helpers.general import fourthOrNone, secondOrNone, thirdOrNone
 from web3factory.erc20_tokens import get_token_config
 from web3factory.factory import make_erc20_client
-from web3client.helpers.general import fourthOrNone, secondOrNone, thirdOrNone
 
 address = secondOrNone(argv)
 if not address:
@@ -12,7 +13,7 @@ if not address:
 
 token = thirdOrNone(argv) or "USDC"
 
-network = fourthOrNone(argv) or "ethereum"
+network = fourthOrNone(argv) or "eth"
 
 client = make_erc20_client(token, network)
 
