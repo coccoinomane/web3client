@@ -18,7 +18,7 @@ network = fourthOrNone(argv) or "eth"
 client = make_erc20_client(token, network)
 
 balance = client.balanceOf(address)
-balance_in_eth = client.fromWei(balance, get_token_config(token, network)["decimals"])
+balance_in_eth = client.from_wei(balance, get_token_config(token, network)["decimals"])
 
 print(f">>> Balance of {address} on {network}")
 print(f"{balance_in_eth} {token}")

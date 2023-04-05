@@ -58,7 +58,9 @@ class Erc20Client(BaseClient):
         """
         Return the amount held by the given address
         """
-        return self.contract.functions.balanceOf(Web3.toChecksumAddress(address)).call()
+        return self.contract.functions.balanceOf(
+            Web3.to_checksum_address(address)
+        ).call()
 
     def name(self) -> str:
         """
@@ -97,7 +99,7 @@ class Erc20Client(BaseClient):
         """
 
         tx: TxParams = self.build_contract_tx(
-            self.contract.functions.transfer(Web3.toChecksumAddress(to), amount)
+            self.contract.functions.transfer(Web3.to_checksum_address(to), amount)
         )
 
         if nonce:
@@ -113,7 +115,7 @@ class Erc20Client(BaseClient):
     ####################
 
     @staticmethod
-    def fromWei(amount: int, decimals: int) -> float:
+    def from_wei(amount: int, decimals: int) -> float:
         """
         Given an amount in Wei, return the equivalent amount in
         ETH units

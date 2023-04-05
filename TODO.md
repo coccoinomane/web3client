@@ -1,4 +1,4 @@
-- Brownie tests
+- Ape tests
 - Merge with [web3core](https://github.com/coccoinomane/web3cli/tree/master/src/web3core)?
 - Automatically convert addresses to checksum
 - Add Uniswap V2 LP contracts

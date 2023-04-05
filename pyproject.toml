@@ -8,20 +8,20 @@ authors = [
 readme = "README.md"
 keywords = ["web3", "blockchain", "ethereum", "evm"]
 license = {text = "MIT"}
-requires-python = ">=3.7.2,<3.11"
+requires-python = ">=3.9,<3.11"
 dependencies = [
-    "web3>=5.31.1,<6.0.0",
+    "web3>=6.0.0",
     "eth-typing>=2.3.0",
     "setuptools>=67.2.0",
     "typing-extensions>=4.4.0",
     "pre-commit>=2.21.0",
+    "websockets>=10.0",
 ]
 
 [tool.pdm.dev-dependencies]
 dev = [
-    "pytest>=6",
     "mypy>=0.982",
-    "eth-brownie>=1.19.2",
+    "eth-ape>=0.6.0",
     "isort>=5.11.3",
     "pre-commit>=2.20.0",
     "autoflake>=2.0.0",

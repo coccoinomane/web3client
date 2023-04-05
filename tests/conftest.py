@@ -3,6 +3,6 @@ Define shared state for all tests
 """
 
 pytest_plugins = [
-    "tests.brownie.fixtures",
+    "tests.ape.fixtures",
     "tests.web3client.fixtures",
 ]
