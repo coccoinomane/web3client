@@ -14,7 +14,7 @@ from web3.gas_strategies import rpc
 from web3.types import (
     BlockData,
     BlockIdentifier,
-    CallOverrideParams,
+    CallOverride,
     Middleware,
     Nonce,
     TxData,
@@ -463,7 +463,7 @@ class BaseClient:
         function: ContractFunction,
         tx: TxParams = None,
         block_identifier: BlockIdentifier = "latest",
-        state_override: CallOverrideParams = None,
+        state_override: CallOverride = None,
     ) -> Any:
         """
         Execute a contract function call using the eth_call interface.
