@@ -1,4 +1,4 @@
 contracts_folder: tests/ape/contracts
 plugins:
 - name: solidity
-- name: ganache
+- name: anvil

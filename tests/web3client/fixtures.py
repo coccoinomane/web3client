@@ -42,10 +42,15 @@ def networks_clients(rpcs: Dict[str, str]) -> Dict[str, BaseClient]:
 
 
 @pytest.fixture()
-def eth_client(rpcs: Dict[str, str]) -> BaseClient:
+def eth_client() -> BaseClient:
+    return make_client("eth")
+
+
+@pytest.fixture()
+def bnb_client() -> BaseClient:
     return make_client("bnb")
 
 
 @pytest.fixture()
-def bnb_client(rpcs: Dict[str, str]) -> BaseClient:
-    return make_client("bnb")
+def bnb_ws_client() -> BaseClient:
+    return make_client("bnb", node_uri="wss://dex.binance.org/api/ws")

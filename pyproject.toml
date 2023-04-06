@@ -21,7 +21,7 @@ dependencies = [
 [tool.pdm.dev-dependencies]
 dev = [
     "mypy>=0.982",
-    "eth-ape>=0.6.0",
+    "eth-ape[recommended-plugins]>=0.6.0",
     "isort>=5.11.3",
     "pre-commit>=2.20.0",
     "autoflake>=2.0.0",
@@ -29,7 +29,7 @@ dev = [
 ]
 
 [tool.pdm.scripts]
-test = "pytest tests"
+test = "ape test tests"
 publish_test = "pdm publish -r testpypi -u ${PDM_PUBLISH_TEST_USERNAME} -P ${PDM_PUBLISH_TEST_PASSWORD}"
 release = "gh release create v{args} dist/web3client-{args}.tar.gz dist/web3client-{args}-py3-none-any.whl --generate-notes"
 
