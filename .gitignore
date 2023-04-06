@@ -26,3 +26,4 @@ pypi-*/
 .vscode/settings.json
 venv/
 .venv/
+tests/ape/.build
