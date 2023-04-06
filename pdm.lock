@@ -1052,12 +1052,12 @@ summary = "Measures the displayed width of unicode strings in a terminal"
 
 [[package]]
 name = "web3"
-version = "6.0.0"
+version = "6.1.0"
 requires_python = ">=3.7.2"
 summary = "web3.py"
 dependencies = [
     "aiohttp>=3.7.4.post0",
-    "eth-abi>=4.0.0-b.2",
+    "eth-abi>=4.0.0",
     "eth-account>=0.8.0",
     "eth-hash[pycryptodome]>=0.5.1",
     "eth-typing>=3.0.0",
@@ -1065,7 +1065,6 @@ dependencies = [
     "hexbytes>=0.1.0",
     "jsonschema>=4.0.0",
     "lru-dict>=1.1.6",
-    "parsimonious==0.9.0",
     "protobuf>=4.21.6",
     "pywin32>=223; platform_system == \"Windows\"",
     "requests>=2.16.0",
@@ -1074,14 +1073,14 @@ dependencies = [
 
 [[package]]
 name = "web3"
-version = "6.0.0"
+version = "6.1.0"
 extras = ["tester"]
 requires_python = ">=3.7.2"
 summary = "web3.py"
 dependencies = [
     "eth-tester[py-evm]==v0.8.0-b.3",
     "py-geth>=3.11.0",
-    "web3==6.0.0",
+    "web3==6.1.0",
 ]
 
 [[package]]
@@ -2751,9 +2750,9 @@ content_hash = "sha256:92216abd82edf89022f5cafb07566f3636b14530d4309990c91a0e8cf
     {url = "https://files.pythonhosted.org/packages/20/f4/c0584a25144ce20bfcf1aecd041768b8c762c1eb0aa77502a3f0baa83f11/wcwidth-0.2.6-py2.py3-none-any.whl", hash = "sha256:795b138f6875577cd91bba52baf9e445cd5118fd32723b460e30a0af30ea230e"},
     {url = "https://files.pythonhosted.org/packages/5e/5f/1e4bd82a9cc1f17b2c2361a2d876d4c38973a997003ba5eb400e8a932b6c/wcwidth-0.2.6.tar.gz", hash = "sha256:a5220780a404dbe3353789870978e472cfe477761f06ee55077256e509b156d0"},
 ]
-"web3 6.0.0" = [
-    {url = "https://files.pythonhosted.org/packages/27/9b/e4f42a38553f6bd42a7a0e1e3d6ad2128ceb7ad700005f7564edba338d28/web3-6.0.0.tar.gz", hash = "sha256:6b925a19e4a0001337d8b2faa72577d6b7e8f9a8a9a0b98d8834cdf698cfc045"},
-    {url = "https://files.pythonhosted.org/packages/ca/bf/d63c5aa4077e0a531f594391b4b58f49036f50009bc90a30b680b8577e14/web3-6.0.0-py3-none-any.whl", hash = "sha256:abdeabec4c68e42caf2cc69eb0af026e0e15880ed9c514addfd2c363baae846f"},
+"web3 6.1.0" = [
+    {url = "https://files.pythonhosted.org/packages/a2/07/916bb3a83f8971793448ca8bce36000cd68b89fb1b48071ae3ff0aa32817/web3-6.1.0.tar.gz", hash = "sha256:55e58f2b8705f0911db5a395343b158d5e4edae9973f5dcb349512ae5a349af5"},
+    {url = "https://files.pythonhosted.org/packages/e4/a5/b8753ffbe225cfa79c40c517f54df0e9023d13b96103c6cb86882c6bb783/web3-6.1.0-py3-none-any.whl", hash = "sha256:31b079fccf6fd0f7e71080b77dc84347fff280f5c197793d973048755358fac4"},
 ]
 "websockets 11.0" = [
     {url = "https://files.pythonhosted.org/packages/00/a5/c22cfabb0ff710c88878766dc83e6b5a80007e133d8e9e90692d583076c5/websockets-11.0-pp37-pypy37_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ff3f67567862a853af2c0db362ede8249be50c576cd9eaf380736c6fce840414"},
