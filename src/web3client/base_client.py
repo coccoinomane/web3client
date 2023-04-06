@@ -1,5 +1,6 @@
+import asyncio
 import json
-from typing import Any, List, Tuple, Union, cast
+from typing import Any, Callable, List, Tuple, Union, cast
 
 from eth_account import Account
 from eth_account.datastructures import SignedMessage, SignedTransaction
@@ -22,8 +23,9 @@ from web3.types import (
     TxReceipt,
     Wei,
 )
+from websockets.client import connect
 
-from web3client.exceptions import TransactionTooExpensive
+from web3client.exceptions import TransactionTooExpensive, Web3ClientException
 
 
 class BaseClient:
@@ -347,23 +349,85 @@ class BaseClient:
         return signer_address == self.user_address
 
     ####################
-    # Watch
+    # Scan
     ####################
 
-    # def watch(
-    #         eventName: str,
-    #         argument_filters: Optional[Dict[str, Any]] = None,
-    #         fromBlock: Optional[BlockIdentifier] = None,
-    #         toBlock: BlockIdentifier = "latest",
-    #         address: Optional[ChecksumAddress] = None,
-    #         topics: Optional[Sequence[Any]] = None) -> None:
-    #     """
-    #     Watch for a certain event
-    #     """
-    #     method_to_call = getattr(foo, 'bar')
-    #     result = method_to_call()
-    #     event = client.contract.events.StartGame()
-    #     filter = event.createFilter(fromBlock='latest' ...)
+    def subscribe_pending_txs(
+        self,
+        on_tx: Callable[[str], None],
+        on_subscribe: Callable[[str], None] = None,
+        once: bool = False,
+        subscription_type: str = "newPendingTransactions",
+    ) -> None:
+        """Asynchronously scan pending transactions with eth_subscribe and call the
+        given callback when one is found.
+
+        Details:
+         - The callback is called with the transaction hash as argument.
+         - The subscription type is 'newPendingTransactions' by default.
+         - Provid once=True to stop the subscription after the first transaction is found.
+
+        Caveats:
+         - The client must be configured with a websocket RPC endpoint (ws:// or wss://)
+         - Not all chains support the 'newPendingTransactions' subscription type.
+         - Not all chains have a mempool, e.g. Arbitrum. For these chains, the function will
+           just hang.
+         - Some chains require a validator node with staked L1 funds to be able to
+           access to pending transactions in the mempool (e.g. Avalanche).
+         - If you use Alchemy, you might want to use 'alchemy_newPendingTransactions'
+           (https://docs.alchemy.com/reference/newpendingtransactions)
+        """
+        # Raise if not a websocket uri
+        rpc_url = self.node_uri
+        if not rpc_url.startswith("ws"):
+            raise ValueError(
+                "Websocket RPC needed to subscribe to pending transactions"
+            )
+
+        async def get_event() -> None:
+            # Connect to websocket
+            async with connect(self.node_uri) as ws:
+                # Subscribe to pending transactions
+                await ws.send(
+                    '{"jsonrpc": "2.0", "id": 1, "method": "eth_subscribe", "params": ["'
+                    + subscription_type
+                    + '"]}'
+                )
+                subscription_response = await ws.recv()
+                try:
+                    subscription_id = json.loads(subscription_response)["result"]
+                except Exception as e:
+                    raise Web3ClientException(
+                        f"Failed to subscribe to pending transactions: {e}"
+                    )
+                # Call on_subscribe callback
+                if on_subscribe:
+                    on_subscribe(json.loads(subscription_response))
+                while True:
+                    # Wait for new transactions
+                    tx_response = await asyncio.wait_for(ws.recv(), timeout=15)
+                    try:
+                        tx_response_json = json.loads(tx_response)
+                        tx_subscription = tx_response_json["params"]["subscription"]
+                        tx_hash = tx_response_json["params"]["result"]
+                    except Exception as e:
+                        raise Web3ClientException(
+                            f"Failed to parse pending transaction: {e}"
+                        )
+                    # Call on_tx callback
+                    if tx_subscription == subscription_id:
+                        on_tx(tx_hash)
+                        if once:
+                            raise StopAsyncIteration
+
+        # Run loop asynchronously
+        loop = asyncio.get_event_loop()
+        while True:
+            try:
+                loop.run_until_complete(get_event())
+            except StopAsyncIteration:
+                loop.close()
+                break
 
     ####################
     # Gas
