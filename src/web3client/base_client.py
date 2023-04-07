@@ -48,7 +48,7 @@ class BaseClient:
     ----------------------
     node_uri: str | RPC node to use
     chain_id: int = None | ID of the chain
-    tx_type: int = 2 | Type of transaction
+    tx_type: int = 2 | Type of transaction: 1 for pre-EIP-1599, 2 for EIP-1599. More details here > https://docs.infura.io/infura/networks/ethereum/concepts/transaction-types
     private_key: str = None | Private key to use (optional)
     max_priority_fee_in_gwei: float = 1 | Miner's tip, relevant only for type-2 transactions (optional, default is 1)
     upper_limit_for_base_fee_in_gwei: float = inf | Raise an exception if baseFee is larger than this (optional, default is no limit)
@@ -165,7 +165,7 @@ class BaseClient:
 
         # Post EIP-1599, we have both the miner's tip and the max fee.
         elif self.tx_type == 2:
-            tx["type"] = self.tx_type
+            tx["type"] = Web3.to_hex(self.tx_type)
 
             # The miner tip is user-provided
             max_priority_fee_in_gwei = (
@@ -178,6 +178,10 @@ class BaseClient:
                 max_priority_fee_in_gwei
             )
             tx["maxFeePerGas"] = Web3.to_wei(maxFeePerGasInGwei, "gwei")
+        else:
+            raise Web3ClientException(
+                f"Transaction with tx_type={self.tx_type} not supported, use either 1 or 2"
+            )
 
         # Raise an exception if the fee is too high
         self.raise_if_gas_fee_too_high(gas_fee_in_gwei)
