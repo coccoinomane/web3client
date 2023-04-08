@@ -356,42 +356,56 @@ class BaseClient:
     # Scan
     ####################
 
-    def subscribe_pending_txs(
+    def subscribe(
         self,
-        on_tx: Callable[[str], None],
-        on_subscribe: Callable[[str], None] = None,
+        on_notification: Callable[[Any], None],
+        on_subscribe: Callable[[Any], None] = None,
         once: bool = False,
         subscription_type: str = "newPendingTransactions",
     ) -> None:
-        """Asynchronously scan pending transactions with eth_subscribe and call the
-        given callback when one is found.
+        """Asynchronously listen to pending transactions, new blocks or
+        contract event logs with eth_subscribe, and call the given callback
+        when one is found.
+
+        Available subscriptions:
+
+         - Use 'newHeads' to listen to new blocks. The callback receives a dict with
+           the block parameters as argument.
+         - Use 'newPendingTransactions' to listen to pending transactions. The callback
+           receives the transaction hash as argument.
+         - Use 'logs' to listen to contract event logs. The callback receives a dict
+           with the smart contract address, block info and the 'data' field. [UNTESTED!]
+         - For a full reference, see https://geth.ethereum.org/docs/interacting-with-geth/rpc/pubsub
 
         Details:
-         - The callback is called with the transaction hash as argument.
-         - The subscription type is 'newPendingTransactions' by default.
-         - Provid once=True to stop the subscription after the first transaction is found.
 
-        Caveats:
-         - The client must be configured with a websocket RPC endpoint (ws:// or wss://)
-         - Not all chains support the 'newPendingTransactions' subscription type.
-         - Not all chains have a mempool, e.g. Arbitrum. For these chains, the function will
-           just hang.
-         - Some chains require a validator node with staked L1 funds to be able to
-           access to pending transactions in the mempool (e.g. Avalanche).
+         - Provid once=True to stop the subscription after the first occurrency.
          - If you use Alchemy, you might want to use 'alchemy_newPendingTransactions'
            (https://docs.alchemy.com/reference/newpendingtransactions)
+         - Subscription is good to react fast to changes on the blockchain, but you might
+           miss some events. If you are ok with less but more reliable approach, use filters.
+
+        Caveats:
+
+         - The client must be configured with a websocket RPC endpoint (ws:// or wss://)
+           or a local IPC endpoint (ending in .ipc).
+         - Not all chains support the 'newPendingTransactions' subscription type.
+         - Not all chains have a mempool, e.g. Arbitrum. For these chains, the function will
+           just hang if asking for 'newPendingTransactions'.
+         - Some chains require a validator node with staked L1 funds to be able to
+           access to pending transactions while they are in the mempool (e.g. Avalanche).
+           On these chains, you might still receive pending transactions, but they will
+           likely be already mined.
         """
         # Raise if not a websocket uri
         rpc_url = self.node_uri
-        if not rpc_url.startswith("ws"):
-            raise ValueError(
-                "Websocket RPC needed to subscribe to pending transactions"
-            )
+        if not rpc_url.startswith("ws") and not rpc_url.endswith(".ipc"):
+            raise ValueError("Websocket RPC needed to subscribe to node notifications")
 
         async def get_event() -> None:
             # Connect to websocket
             async with connect(self.node_uri) as ws:
-                # Subscribe to pending transactions
+                # Subscribe to the notification type
                 await ws.send(
                     '{"jsonrpc": "2.0", "id": 1, "method": "eth_subscribe", "params": ["'
                     + subscription_type
@@ -402,25 +416,23 @@ class BaseClient:
                     subscription_id = json.loads(subscription_response)["result"]
                 except Exception as e:
                     raise Web3ClientException(
-                        f"Failed to subscribe to pending transactions: {e}"
+                        f"Failed to subscribe to {subscription_type}: {e}"
                     )
                 # Call on_subscribe callback
                 if on_subscribe:
                     on_subscribe(json.loads(subscription_response))
                 while True:
-                    # Wait for new transactions
-                    tx_response = await asyncio.wait_for(ws.recv(), timeout=15)
+                    # Wait for new notifications
+                    response = await asyncio.wait_for(ws.recv(), timeout=15)
                     try:
-                        tx_response_json = json.loads(tx_response)
-                        tx_subscription = tx_response_json["params"]["subscription"]
-                        tx_hash = tx_response_json["params"]["result"]
+                        response_json = json.loads(response)
+                        subscription_id_ = response_json["params"]["subscription"]
+                        result = response_json["params"]["result"]
                     except Exception as e:
-                        raise Web3ClientException(
-                            f"Failed to parse pending transaction: {e}"
-                        )
-                    # Call on_tx callback
-                    if tx_subscription == subscription_id:
-                        on_tx(tx_hash)
+                        raise Web3ClientException(f"Failed to parse notification: {e}")
+                    # Call on_notification callback
+                    if subscription_id_ == subscription_id:
+                        on_notification(result)
                         if once:
                             raise StopAsyncIteration
 
