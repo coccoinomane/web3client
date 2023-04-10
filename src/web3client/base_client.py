@@ -26,6 +26,7 @@ from web3.types import (
 from websockets.client import connect
 
 from web3client.exceptions import TransactionTooExpensive, Web3ClientException
+from web3client.helpers.websockets import subscribe_to_notification
 
 
 class BaseClient:
@@ -363,9 +364,8 @@ class BaseClient:
         once: bool = False,
         subscription_type: str = "newPendingTransactions",
     ) -> None:
-        """Asynchronously listen to pending transactions, new blocks or
-        contract event logs with eth_subscribe, and call the given callback
-        when one is found.
+        """Listen to pending transactions, new blocks or contract event logs using
+        eth_subscribe, and call the given callback when one is found.
 
         Available subscriptions:
 
@@ -406,21 +406,10 @@ class BaseClient:
             # Connect to websocket
             async with connect(self.node_uri) as ws:
                 # Subscribe to the notification type
-                await ws.send(
-                    '{"jsonrpc": "2.0", "id": 1, "method": "eth_subscribe", "params": ["'
-                    + subscription_type
-                    + '"]}'
+                subscription_id = await subscribe_to_notification(
+                    ws, subscription_type, on_subscribe
                 )
-                subscription_response = await ws.recv()
-                try:
-                    subscription_id = json.loads(subscription_response)["result"]
-                except Exception as e:
-                    raise Web3ClientException(
-                        f"Failed to subscribe to {subscription_type}: {e}"
-                    )
-                # Call on_subscribe callback
-                if on_subscribe:
-                    on_subscribe(json.loads(subscription_response))
+                # Main loop
                 while True:
                     # Wait for new notifications
                     response = await asyncio.wait_for(ws.recv(), timeout=15)
