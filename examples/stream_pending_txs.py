@@ -1,5 +1,6 @@
 """
-Print the latest block
+Print pending transactions obtained real-time from a websocket connection,
+using eth_subscribe
 """
 from web3factory.factory import make_client
 from web3factory.networks import supported_networks
