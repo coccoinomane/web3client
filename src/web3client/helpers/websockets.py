@@ -1,5 +1,5 @@
 import json
-from typing import Any, Callable
+from typing import Any, Callable, Tuple, Union
 
 from websockets.client import WebSocketClientProtocol
 
@@ -30,3 +30,30 @@ async def subscribe_to_notification(
     if on_subscribe:
         on_subscribe(json.loads(subscription_response))
     return subscription_id
+
+
+def parse_notification(notification: Union[str, bytes], type: str) -> Tuple[str, Any]:
+    """Given a notification, return the subscription ID and
+    notification data"""
+    try:
+        as_dict = json.loads(notification)
+    except json.JSONDecodeError as e:
+        raise Web3ClientException(
+            f"Notification from websocket is malformed: {notification!r}"
+        )
+
+    try:
+        subscription_id = as_dict["params"]["subscription"]
+    except KeyError:
+        raise Web3ClientException(
+            f"Cannot extract 'subscription' field from websocket notification: {notification!r}"
+        )
+
+    try:
+        data = as_dict["params"]["result"]
+    except KeyError:
+        raise Web3ClientException(
+            f"Cannot extract 'result' field from websocket notification: {notification!r}"
+        )
+
+    return subscription_id, data

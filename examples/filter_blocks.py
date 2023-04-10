@@ -16,5 +16,5 @@ filter = client.w3.eth.filter("latest")
 
 while True:
     for block in filter.get_new_entries():
-        print(f"New block: {block}")
+        print(f"New block: {block!r}")
     sleep(1)

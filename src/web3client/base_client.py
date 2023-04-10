@@ -26,7 +26,7 @@ from web3.types import (
 from websockets.client import connect
 
 from web3client.exceptions import TransactionTooExpensive, Web3ClientException
-from web3client.helpers.websockets import subscribe_to_notification
+from web3client.helpers.websockets import parse_notification, subscribe_to_notification
 
 
 class BaseClient:
@@ -402,7 +402,7 @@ class BaseClient:
         if not rpc_url.startswith("ws") and not rpc_url.endswith(".ipc"):
             raise ValueError("Websocket RPC needed to subscribe to node notifications")
 
-        async def get_event() -> None:
+        async def main() -> None:
             # Connect to websocket
             async with connect(self.node_uri) as ws:
                 # Subscribe to the notification type
@@ -413,24 +413,15 @@ class BaseClient:
                 while True:
                     # Wait for new notifications
                     response = await asyncio.wait_for(ws.recv(), timeout=15)
-                    try:
-                        response_json = json.loads(response)
-                        subscription_id_ = response_json["params"]["subscription"]
-                        result = response_json["params"]["result"]
-                    except Exception as e:
-                        raise Web3ClientException(f"Failed to parse notification: {e}")
+                    id, data = parse_notification(response, subscription_type)
                     # Call on_notification callback
-                    if subscription_id_ == subscription_id:
-                        on_notification(result)
+                    if id == subscription_id:
+                        on_notification(data)
                         if once:
-                            raise StopAsyncIteration
+                            return
 
         # Run loop asynchronously
-        loop = asyncio.get_event_loop()
-        try:
-            loop.run_until_complete(get_event())
-        except StopAsyncIteration:
-            loop.close()
+        asyncio.run(main())
 
     ####################
     # Gas
