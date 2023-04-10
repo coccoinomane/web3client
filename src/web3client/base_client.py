@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Callable, List, Tuple, Union, cast
+from typing import Any, Awaitable, Callable, List, Tuple, Union, cast
 
 from eth_account import Account
 from eth_account.datastructures import SignedMessage, SignedTransaction
@@ -364,10 +364,13 @@ class BaseClient:
         once: bool = False,
         subscription_type: str = "newPendingTransactions",
     ) -> None:
-        """Listen to pending transactions, new blocks or contract event logs using
-        eth_subscribe, and call the given callback when one is found.
+        """Look for new pending transactions, blocks or events; when one is found,
+        call the 'on_notification' callback.
 
-        Available subscriptions:
+        Notifications are processed one at a time; if you need concurrent execution,
+        use async_subscribe() instead.
+
+        Subscription types (same as eth_subscribe RPC method):
 
          - Use 'newHeads' to listen to new blocks. The callback receives a dict with
            the block parameters as argument.
@@ -402,6 +405,13 @@ class BaseClient:
         if not rpc_url.startswith("ws") and not rpc_url.endswith(".ipc"):
             raise ValueError("Websocket RPC needed to subscribe to node notifications")
 
+        def process_notification(
+            notification: Union[str, bytes], subscription_id: str
+        ) -> None:
+            id, data = parse_notification(notification, subscription_type)
+            if id == subscription_id:
+                on_notification(data)
+
         async def main() -> None:
             # Connect to websocket
             async with connect(self.node_uri) as ws:
@@ -412,16 +422,50 @@ class BaseClient:
                 # Main loop
                 while True:
                     # Wait for new notifications
-                    response = await asyncio.wait_for(ws.recv(), timeout=15)
-                    id, data = parse_notification(response, subscription_type)
-                    # Call on_notification callback
-                    if id == subscription_id:
-                        on_notification(data)
-                        if once:
-                            return
+                    notification = await asyncio.wait_for(ws.recv(), timeout=15)
+                    process_notification(notification, subscription_id)
+                    if once:
+                        return
 
-        # Run loop asynchronously
         asyncio.run(main())
+
+    async def async_subscribe(
+        self,
+        on_notification: Callable[[Any], Awaitable[None]],
+        on_subscribe: Callable[[Any], None] = None,
+        once: bool = False,
+        subscription_type: str = "newPendingTransactions",
+    ) -> None:
+        """Look for new pending transactions, blocks or events and, when one is found,
+        call the 'on_notification' callback concurrently.
+
+        For more details, see subscribe().
+        """
+        # Raise if not a websocket uri
+        rpc_url = self.node_uri
+        if not rpc_url.startswith("ws") and not rpc_url.endswith(".ipc"):
+            raise ValueError("Websocket RPC needed to subscribe to node notifications")
+
+        async def process_notification(
+            notification: Union[str, bytes], subscription_id: str
+        ) -> None:
+            id, data = parse_notification(notification, subscription_type)
+            if id == subscription_id:
+                asyncio.create_task(on_notification(data))  # type: ignore
+
+        # Connect to websocket
+        async with connect(self.node_uri) as ws:
+            # Subscribe to the notification type
+            subscription_id = await subscribe_to_notification(
+                ws, subscription_type, on_subscribe
+            )
+            # Main loop
+            while True:
+                # Wait for new notifications
+                notification = await asyncio.wait_for(ws.recv(), timeout=15)
+                await process_notification(notification, subscription_id)
+                if once:
+                    return
 
     ####################
     # Gas

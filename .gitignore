@@ -27,3 +27,4 @@ pypi-*/
 venv/
 .venv/
 tests/ape/.build
+examples/asyncio_example.py
