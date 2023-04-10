@@ -438,12 +438,10 @@ class BaseClient:
 
         # Run loop asynchronously
         loop = asyncio.get_event_loop()
-        while True:
-            try:
-                loop.run_until_complete(get_event())
-            except StopAsyncIteration:
-                loop.close()
-                break
+        try:
+            loop.run_until_complete(get_event())
+        except StopAsyncIteration:
+            loop.close()
 
     ####################
     # Gas
