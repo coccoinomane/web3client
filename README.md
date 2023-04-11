@@ -3,10 +3,12 @@ Batteries-included client to interact with blockchains and smart contracts; used
 # Features
 
 - Easily create a client to interact with EVM-compatible chains
-- Perform ERC20 operations, using the token name (e.g. USDC) instead of address.
 - Interact with the most popular chains: Ethereum, Binance, Avalanche, Arbitrum One, zkSync Era, and more to come!
+- Subscribe to pending transactions in the mempool and new blocks.
 - Save gas by setting an upper limit on the base fee.
 - Need more flexibility? Use directly the underlying web3.py client.
+- Perform ERC20 operations, using the token name (e.g. USDC) instead of address.
+
 
 # Install
 
@@ -16,16 +18,16 @@ pip3 install -U web3client
 
 # Examples
 
-Get the latest block on both Ethereum, BNB Chain and Avalanche:
+Get the latest block on supported blockchains:
 
 ```python
 from web3factory.factory import make_client
 
-eth_block = make_client("eth").get_latest_block()
-bnb_block = make_client("bnb").get_latest_block()
-avax_block = make_client("avax").get_latest_block()
-arb_block = make_client("arb").get_latest_block()
-era_block = make_client("era").get_latest_block()
+eth_block = make_client("eth").get_latest_block() # Ethereum
+bnb_block = make_client("bnb").get_latest_block() # BNB chain
+avax_block = make_client("avax").get_latest_block() # Avalanche
+arb_block = make_client("arb").get_latest_block() # Arbitrum
+era_block = make_client("era").get_latest_block() # zkSync Era
 ```
 
 Get the ETH and USDC balances of the Ethereum foundation:
