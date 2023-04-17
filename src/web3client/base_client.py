@@ -436,10 +436,11 @@ class BaseClient:
         once: bool = False,
         subscription_type: str = "newPendingTransactions",
     ) -> None:
-        """Look for new pending transactions, blocks or events and, when one is found,
+        """Look for new pending transactions, blocks or events; when one is found,
         call the 'on_notification' callback concurrently.
 
-        For more details, see subscribe().
+        Call this function with asyncio.run(client.async_subscribe(callback)), where the
+        callback must be an async function.  For more details, see subscribe().
         """
         # Raise if not a websocket uri
         rpc_url = self.node_uri

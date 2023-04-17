@@ -60,6 +60,14 @@ supported_networks: List[NetworkConfig] = [
         "rpcs": ["https://mainnet.era.zksync.io"],
         "coin": "ETH",
     },
+    # Kava EVM
+    {
+        "name": "kava",
+        "tx_type": 1,
+        "chain_id": 2222,
+        "rpcs": ["https://evm.kava.io"],
+        "coin": "KAVA",
+    },
 ]
 
 
