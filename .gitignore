@@ -17,7 +17,7 @@ Desktop.ini
 .tox
 .cache
 .pytest_cache
-.pdm.toml
+.pdm-python
 __pypackages__/
 .mypy_cache
 pypi-*/
