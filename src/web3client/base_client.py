@@ -116,6 +116,7 @@ class BaseClient:
         self.private_key: str = private_key
         self.account: LocalAccount = Account.from_key(private_key)
         self.user_address: Address = self.account.address
+        self.w3.eth.default_account = self.account.address
         return self
 
     def set_contract(
