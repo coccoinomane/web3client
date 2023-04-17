@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import json
 from typing import Any, Awaitable, Callable, List, Tuple, Union, cast
@@ -105,27 +107,33 @@ class BaseClient:
     # Setters
     ####################
 
-    def set_provider(self, node_uri: str) -> None:
+    def set_provider(self, node_uri: str) -> BaseClient:
         self.node_uri: str = node_uri
         self.w3 = self.get_provider(node_uri)
+        return self
 
-    def set_account(self, private_key: str) -> None:
+    def set_account(self, private_key: str) -> BaseClient:
         self.private_key: str = private_key
         self.account: LocalAccount = Account.from_key(private_key)
         self.user_address: Address = self.account.address
+        return self
 
-    def set_contract(self, contract_address: Address, abi: dict[str, Any]) -> None:
+    def set_contract(
+        self, contract_address: Address, abi: dict[str, Any]
+    ) -> BaseClient:
         self.contract_address: Address = cast(
             Address, Web3.to_checksum_address(contract_address)
         )
         self.abi: dict[str, Any] = abi
         self.contract = self.getContract(contract_address, self.w3, abi=abi)
         self.functions = self.contract.functions
+        return self
 
-    def set_middlewares(self, middlewares: List[Middleware]) -> None:
+    def set_middlewares(self, middlewares: List[Middleware]) -> BaseClient:
         self.middlewares: List[Middleware] = middlewares
         for i, m in enumerate(middlewares):
             self.w3.middleware_onion.inject(m, layer=i)
+        return self
 
     ####################
     # Build Tx
