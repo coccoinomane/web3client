@@ -561,9 +561,13 @@ class BaseClient:
         )
 
     def get_balance_in_wei(self, address: Address = None) -> Wei:
+        if not address:
+            address = self.user_address
         return self.w3.eth.get_balance(Web3.to_checksum_address(address))
 
     def get_balance_in_eth(self, address: Address = None) -> float:
+        if not address:
+            address = self.user_address
         return float(Web3.from_wei(self.get_balance_in_wei(address), "ether"))
 
     ####################
