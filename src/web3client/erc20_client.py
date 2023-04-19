@@ -1,8 +1,9 @@
 import os
+from functools import cached_property
 
 from eth_typing import Address, HexStr
 from web3 import Web3
-from web3.types import Nonce, TxParams, Wei
+from web3.types import Nonce, Wei
 
 from web3client.base_client import BaseClient
 
@@ -11,18 +12,24 @@ class Erc20Client(BaseClient):
     """
     Client that comes with the ERC20 ABI preloaded.
 
-    Call the contract functions directly: transfer, balanceOf, name,
-    etc.
+    It allows you to call the contract functions as class methods:
+    transfer, balanceOf, name, etc.
+
+    If you pass  a private key, it will allow you to call the
+    write functions (transfer, approve, etc.)
+
+    The token properties (name, symbol, total_supply, decimals) can be
+    accessed as attributes, and will be fetched from the blockchain only
+    once.
 
     AMOUNTS
     =======
 
     Whenever we will refer to an "amount" of the token, we really mean an
-    "amount in token units". A token unit is the smallest subdivision of
-    the token. For example:
-    - If the token has 6 digits (like most stablecoins) an amount of 1
+    amount in the smallest subdivision of the token (e.g. wei). For example:
+    - If the token has 6 decimals (like most stablecoins) an amount of 1
       corresponds to one millionth of the token.
-    - For tokens with 18 digits (like most non-stablecoins) an amount
+    - For tokens with 18 decimals (like most non-stablecoins) an amount
       of 1 is equal to 1/10^18 of the token (a single wei).
     """
 
@@ -39,6 +46,8 @@ class Erc20Client(BaseClient):
         upper_limit_for_base_fee_in_gwei: float = float("inf"),
         contract_address: Address = None,
     ) -> None:
+        if not contract_address:
+            raise ValueError("You must specify a contract address")
         super().__init__(
             node_uri,
             chain_id,
@@ -62,24 +71,28 @@ class Erc20Client(BaseClient):
             Web3.to_checksum_address(address)
         ).call()
 
+    @cached_property
     def name(self) -> str:
         """
         Return the name/label of the token
         """
         return self.contract.functions.name().call()
 
+    @cached_property
     def symbol(self) -> str:
         """
         Return the symbol/ticker of the token
         """
         return self.contract.functions.symbol().call()
 
+    @cached_property
     def totalSupply(self) -> int:
         """
         Return the total supply of the token
         """
         return self.contract.functions.totalSupply().call()
 
+    @cached_property
     def decimals(self) -> int:
         """
         Return the number of digits of the token
@@ -91,24 +104,46 @@ class Erc20Client(BaseClient):
     ####################
 
     def transfer(
-        self, to: Address, amount: int, nonce: Nonce = None, value_in_wei: Wei = Wei(0)
+        self,
+        to: Address,
+        amount: int,
+        value_in_wei: Wei = None,
+        nonce: Nonce = None,
+        gas_limit: int = None,
+        max_priority_fee_in_gwei: int = None,
     ) -> HexStr:
         """
         Transfer some amount of the token to an address; does not
         require approval.
         """
-
-        tx: TxParams = self.build_contract_tx(
-            self.contract.functions.transfer(Web3.to_checksum_address(to), amount)
+        return self.transact(
+            self.contract.functions.transfer(Web3.to_checksum_address(to), amount),
+            value_in_wei,
+            nonce,
+            gas_limit,
+            max_priority_fee_in_gwei,
         )
 
-        if nonce:
-            tx["nonce"] = nonce
-
-        if value_in_wei:
-            tx["value"] = value_in_wei
-
-        return self.sign_and_send_tx(tx)
+    def approve(
+        self,
+        spender: Address,
+        amount: int,
+        value_in_wei: Wei = None,
+        nonce: Nonce = None,
+        gas_limit: int = None,
+        max_priority_fee_in_gwei: int = None,
+    ) -> HexStr:
+        """
+        Approve the given address to spend some amount of the token
+        on behalf of the sender.
+        """
+        return self.transact(
+            self.contract.functions.approve(Web3.to_checksum_address(spender), amount),
+            value_in_wei,
+            nonce,
+            gas_limit,
+            max_priority_fee_in_gwei,
+        )
 
     ####################
     # Static
