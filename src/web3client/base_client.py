@@ -49,7 +49,7 @@ class BaseClient:
 
     Attributes
     ----------------------
-    node_uri: str | RPC node to use
+    node_uri: str | RPC node to use.  Set it to None for a uninitialized client.
     chain_id: int = None | ID of the chain
     tx_type: int = 2 | Type of transaction: 1 for pre-EIP-1599, 2 for EIP-1599. More details here > https://docs.infura.io/infura/networks/ethereum/concepts/transaction-types
     private_key: str = None | Private key to use (optional)
@@ -87,8 +87,7 @@ class BaseClient:
         self.max_priority_fee_in_gwei: float = max_priority_fee_in_gwei
         self.upper_limit_for_base_fee_in_gwei: float = upper_limit_for_base_fee_in_gwei
         # Initialize web3.py provider
-        if node_uri:
-            self.set_provider(node_uri)
+        self.set_provider(node_uri)
         # User account
         if private_key:
             self.set_account(private_key)
@@ -647,12 +646,18 @@ class BaseClient:
         TODO: Support autodetection with empty node_uri
         docs here https://web3py.readthedocs.io/en/stable/providers.html#how-automated-detection-works
         """
-        if node_uri[0:4] == "http":
+        if node_uri is None:
+            return Web3()
+        elif node_uri[0:4] == "http":
             return Web3(Web3.HTTPProvider(node_uri))
         elif node_uri[0:2] == "ws":
             return Web3(Web3.WebsocketProvider(node_uri))
+        elif node_uri[-4:] == ".ipc":
+            return Web3(Web3.IPCProvider(node_uri))
         else:
-            return Web3()
+            raise ValueError(
+                "Node URI not recognized, must start with http, ws or end with .ipc"
+            )
 
     @staticmethod
     def get_gas_spent_in_eth(txReceipt: TxReceipt) -> float:

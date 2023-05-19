@@ -16,7 +16,7 @@ def printTxInfo(client: BaseClient, txHash: HexStr) -> None:
     print(">>> TX SENT!")
     print("Hash = " + txHash)
     print("Waiting for transaction to finalize...")
-    tx_receipt = client.get_transaction_receipt(txHash)
+    tx_receipt = client.get_tx_receipt(txHash)
     print(">>> TX IS ON THE BLOCKCHAIN :-)")
     pprint.pprint(tx_receipt)
     print(">>> ETH SPENT")

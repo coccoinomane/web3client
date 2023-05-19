@@ -1,7 +1,5 @@
 from typing import Any, Type, cast
 
-from eth_typing import Address
-
 from web3client.base_client import BaseClient
 from web3client.erc20_client import Erc20Client
 from web3factory.erc20_tokens import get_token_config
@@ -31,7 +29,7 @@ def make_client(
 def make_erc20_client(
     networkName: NetworkName,
     node_uri: str = None,
-    token_address: Address = None,
+    token_address: str = None,
     token_name: TokenName = None,
     **clientArgs: Any,
 ) -> Erc20Client:
