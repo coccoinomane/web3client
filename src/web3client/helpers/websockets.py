@@ -1,6 +1,7 @@
 import json
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
+from eth_typing import Address
 from websockets.client import WebSocketClientProtocol
 
 from web3client.exceptions import Web3ClientException
@@ -10,17 +11,30 @@ async def subscribe_to_notification(
     ws: WebSocketClientProtocol,
     type: str,
     on_subscribe: Callable[[Any], None] = None,
+    logs_addresses: List[Address] = None,
+    logs_topics: List[str] = None,
 ) -> str:
     """Given a websocket connection to an RPC, subscribe to the given
     notification type, and return the subscription id.
 
     Optinally, call the given callback with the subscription response."""
+    # Build subsciption params
+    params: Dict[str, Any] = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "eth_subscribe",
+        "params": [type],
+    }
+    # Add logs filter if needed
+    if type == "logs":
+        logs_args: Dict[str, Any] = {}
+        if logs_addresses:
+            logs_args["address"] = logs_addresses
+        if logs_topics:
+            logs_args["topics"] = logs_topics
+        params["params"].append(logs_args)
     # Subscribe to the notification type
-    await ws.send(
-        '{"jsonrpc": "2.0", "id": 1, "method": "eth_subscribe", "params": ["'
-        + type
-        + '"]}'
-    )
+    await ws.send(json.dumps(params))
     subscription_response = await ws.recv()
     try:
         subscription_id = json.loads(subscription_response)["result"]

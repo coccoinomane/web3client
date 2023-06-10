@@ -371,6 +371,8 @@ class BaseClient:
         on_subscribe: Callable[[Any], None] = None,
         once: bool = False,
         subscription_type: str = "newPendingTransactions",
+        logs_addresses: List[Address] = None,
+        logs_topics: List[str] = None,
     ) -> None:
         """Look for new pending transactions, blocks or events; when one is found,
         call the 'on_notification' callback.
@@ -385,7 +387,8 @@ class BaseClient:
          - Use 'newPendingTransactions' to listen to pending transactions. The callback
            receives the transaction hash as argument.
          - Use 'logs' to listen to contract event logs. The callback receives a dict
-           with the smart contract address, block info and the 'data' field. [UNTESTED!]
+           with the smart contract address, block info and the 'data' field. If you
+           want to filter by contract address and/or topics, pass them as arguments.
          - For a full reference, see https://geth.ethereum.org/docs/interacting-with-geth/rpc/pubsub
 
         Details:
@@ -394,7 +397,8 @@ class BaseClient:
          - If you use Alchemy, you might want to use 'alchemy_newPendingTransactions'
            (https://docs.alchemy.com/reference/newpendingtransactions)
          - Subscription is good to react fast to changes on the blockchain, but you might
-           miss some events. If you are ok with less but more reliable approach, use filters.
+           miss some events. If you are ok with a slower but more reliable approach, use
+           filters (eth_filter).
 
         Caveats:
 
@@ -425,7 +429,7 @@ class BaseClient:
             async with connect(self.node_uri) as ws:
                 # Subscribe to the notification type
                 subscription_id = await subscribe_to_notification(
-                    ws, subscription_type, on_subscribe
+                    ws, subscription_type, on_subscribe, logs_addresses, logs_topics
                 )
                 # Main loop
                 while True:
@@ -443,12 +447,17 @@ class BaseClient:
         on_subscribe: Callable[[Any], None] = None,
         once: bool = False,
         subscription_type: str = "newPendingTransactions",
+        logs_addresses: List[Address] = None,
+        logs_topics: List[str] = None,
     ) -> None:
         """Look for new pending transactions, blocks or events; when one is found,
         call the 'on_notification' callback concurrently.
 
         Call this function with asyncio.run(client.async_subscribe(callback)), where the
         callback must be an async function.  For more details, see subscribe().
+
+        For subscription_type=logs, you can also filter by contract address and
+        topics.
         """
         # Raise if not a websocket uri
         rpc_url = self.node_uri
@@ -466,7 +475,7 @@ class BaseClient:
         async with connect(self.node_uri) as ws:
             # Subscribe to the notification type
             subscription_id = await subscribe_to_notification(
-                ws, subscription_type, on_subscribe
+                ws, subscription_type, on_subscribe, logs_addresses, logs_topics
             )
             # Main loop
             while True:
