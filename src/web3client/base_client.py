@@ -418,6 +418,11 @@ class BaseClient:
         subscription_type: str = "newPendingTransactions",
         logs_addresses: List[Address] = None,
         logs_topics: List[str] = None,
+        tx_from: List[Address] = None,
+        tx_to: List[Address] = None,
+        tx_value: Tuple[float, float] = None,
+        tx_on_fetch: Callable[[TxData, Any], None] = None,
+        tx_on_fetch_error: Callable[[Exception, Any], None] = None,
     ) -> None:
         """Look for new pending transactions, blocks or events; when one is found,
         call the 'on_notification' callback.
@@ -439,6 +444,9 @@ class BaseClient:
         Details:
 
          - Provid once=True to stop the subscription after the first occurrency.
+         - Use tx_from, tx_to and tx_value to filter transactions by sender, receiver
+           and value.  The value is a tuple (min, max) in ETH.  To create finer filters,
+           it is recommended to customize the on_notification callback.
          - If you use Alchemy, you might want to use 'alchemy_newPendingTransactions'
            (https://docs.alchemy.com/reference/newpendingtransactions)
          - Subscription is good to react fast to changes on the blockchain, but you might
@@ -466,8 +474,26 @@ class BaseClient:
             notification: Union[str, bytes], subscription_id: str
         ) -> None:
             id, data = parse_notification(notification, subscription_type)
-            if id == subscription_id:
+            if id != subscription_id:
+                return
+
+            # Simple case: no filtering based on tx
+            if not tx_from and not tx_to and not tx_value:
                 on_notification(data)
+
+            # Complex case: filter based on tx
+            else:
+                try:
+                    tx = self.get_tx_from_notification(subscription_type, data)
+                    if tx_on_fetch:
+                        tx_on_fetch(tx, data)
+                except Exception as e:
+                    if tx_on_fetch_error:
+                        tx_on_fetch_error(e, data)
+                    return
+
+                if self.filter_tx(tx, tx_from, tx_to, tx_value):
+                    on_notification(data)
 
         async def main() -> None:
             # Connect to websocket
@@ -494,6 +520,11 @@ class BaseClient:
         subscription_type: str = "newPendingTransactions",
         logs_addresses: List[Address] = None,
         logs_topics: List[str] = None,
+        tx_from: List[Address] = None,
+        tx_to: List[Address] = None,
+        tx_value: Tuple[float, float] = None,
+        tx_on_fetch: Callable[[TxData, Any], None] = None,
+        tx_on_fetch_error: Callable[[Exception, Any], None] = None,
     ) -> None:
         """Look for new pending transactions, blocks or events; when one is found,
         call the 'on_notification' callback concurrently.
@@ -501,8 +532,7 @@ class BaseClient:
         Call this function with asyncio.run(client.async_subscribe(callback)), where the
         callback must be an async function.  For more details, see subscribe().
 
-        For subscription_type=logs, you can also filter by contract address and
-        topics.
+        Please find the detailed description of the arguments in subscribe().
         """
         # Raise if not a websocket uri
         rpc_url = self.node_uri
@@ -513,8 +543,29 @@ class BaseClient:
             notification: Union[str, bytes], subscription_id: str
         ) -> None:
             id, data = parse_notification(notification, subscription_type)
-            if id == subscription_id:
+            if id != subscription_id:
+                return
+
+            # Simple case: no filtering based on tx
+            if not tx_from and not tx_to and not tx_value:
                 asyncio.create_task(on_notification(data))  # type: ignore
+
+            # Complex case: filter based on tx
+            else:
+
+                async def on_notification_wrapper(data: Any) -> None:
+                    try:
+                        tx = self.get_tx_from_notification(subscription_type, data)
+                        if tx_on_fetch:
+                            tx_on_fetch(tx, data)
+                    except Exception as e:
+                        if tx_on_fetch_error:
+                            tx_on_fetch_error(e, data)
+                        return
+                    if self.filter_tx(tx, tx_from, tx_to, tx_value):
+                        await on_notification(data)
+
+                asyncio.create_task(on_notification_wrapper(data))
 
         # Connect to websocket
         async with connect(self.node_uri) as ws:
@@ -724,3 +775,33 @@ class BaseClient:
                 txReceipt["effectiveGasPrice"] * txReceipt["gasUsed"], "ether"
             )
         )
+
+    @staticmethod
+    def filter_tx(
+        tx: TxData,
+        from_: List[Address] = None,
+        to: List[Address] = None,
+        value: Tuple[float, float] = None,
+    ) -> bool:
+        """Given a transaction, return True if the transaction
+        matches the given criteria.
+
+        The criteria can be:
+        - from_: list of addresses that the transaction must be sent from
+        - to: list of addresses that the transaction must be sent to
+        - value: tuple of minimum and maximum value of the transaction (NOT TESTED)
+
+        If a criteria is not specified, it is not checked.
+        """
+        # Check sender
+        if from_ and tx["from"] not in [Web3.to_checksum_address(s) for s in from_]:
+            return False
+        # Check receiver
+        if to and tx["to"] not in [Web3.to_checksum_address(r) for r in to]:
+            return False
+        # Check value
+        if value:
+            value_in_eth = Web3.from_wei(tx["value"], "ether")
+            if value_in_eth < value[0] or value_in_eth > value[1]:
+                return False
+        return True
