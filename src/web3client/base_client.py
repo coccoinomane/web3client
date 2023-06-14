@@ -347,9 +347,7 @@ class BaseClient:
         """
         return self.w3.eth.get_transaction(tx_hash)
 
-    def poll_tx(
-        self, tx_hash: HexStr, poll_interval: int = 1, poll_timeout: int = 10
-    ) -> TxData:
+    def poll_tx(self, tx_hash: HexStr, interval: int = 1, timeout: int = 10) -> TxData:
         """Get a transaction from the blockchain. If the transaction is not
         found, poll until it is found. If it is not found after poll_timeout
         seconds, raises web3.exceptions.TransactionNotFound.
@@ -362,7 +360,7 @@ class BaseClient:
         - poll_timeout (int): The number of seconds to wait before timing out.
         Set to None to wait indefinitely. Set to zero to disable polling.
         """
-        if poll_interval is None:
+        if interval is None:
             return self.get_tx(tx_hash)
 
         start_time = time.time()
@@ -370,11 +368,17 @@ class BaseClient:
             try:
                 return self.get_tx(tx_hash)
             except TransactionNotFound as e:
-                time.sleep(poll_interval)
-                if time.time() - start_time > poll_timeout:
+                time.sleep(interval)
+                if time.time() - start_time > timeout:
                     raise e
 
-    def get_tx_from_notification(self, subscription_type: str, data: Any) -> TxData:
+    def get_tx_from_notification(
+        self,
+        subscription_type: str,
+        data: Any,
+        poll_interval: int = 1,
+        poll_timeout: int = 10,
+    ) -> TxData:
         """Given an eth_subscribe notification, return the transaction data."""
         if subscription_type == "newPendingTransactions":
             tx_hash = data
@@ -384,7 +388,7 @@ class BaseClient:
             raise Web3ClientException(
                 f"Cannot extract transaction from notifications of type '{subscription_type}'"
             )
-        return self.poll_tx(tx_hash)
+        return self.poll_tx(tx_hash, interval=poll_interval, timeout=poll_timeout)
 
     ####################
     # Messages
@@ -423,6 +427,8 @@ class BaseClient:
         tx_value: Tuple[float, float] = None,
         tx_on_fetch: Callable[[TxData, Any], None] = None,
         tx_on_fetch_error: Callable[[Exception, Any], None] = None,
+        tx_fetch_timeout: int = 10,
+        ws_timeout: int = None,
     ) -> None:
         """Look for new pending transactions, blocks or events; when one is found,
         call the 'on_notification' callback.
@@ -452,6 +458,8 @@ class BaseClient:
          - Subscription is good to react fast to changes on the blockchain, but you might
            miss some events. If you are ok with a slower but more reliable approach, use
            filters (eth_filter).
+         - To raise an error when no notification is received for a while, set ws_timeout
+           to a value in seconds.
 
         Caveats:
 
@@ -484,7 +492,9 @@ class BaseClient:
             # Complex case: filter based on tx
             else:
                 try:
-                    tx = self.get_tx_from_notification(subscription_type, data)
+                    tx = self.get_tx_from_notification(
+                        subscription_type, data, poll_timeout=tx_fetch_timeout
+                    )
                     if tx_on_fetch:
                         tx_on_fetch(tx, data)
                 except Exception as e:
@@ -505,7 +515,7 @@ class BaseClient:
                 # Main loop
                 while True:
                     # Wait for new notifications
-                    notification = await asyncio.wait_for(ws.recv(), timeout=15)
+                    notification = await asyncio.wait_for(ws.recv(), timeout=ws_timeout)
                     process_notification(notification, subscription_id)
                     if once:
                         return
@@ -525,6 +535,8 @@ class BaseClient:
         tx_value: Tuple[float, float] = None,
         tx_on_fetch: Callable[[TxData, Any], None] = None,
         tx_on_fetch_error: Callable[[Exception, Any], None] = None,
+        tx_fetch_timeout: int = 10,
+        ws_timeout: int = None,
     ) -> None:
         """Look for new pending transactions, blocks or events; when one is found,
         call the 'on_notification' callback concurrently.
@@ -555,7 +567,9 @@ class BaseClient:
 
                 async def on_notification_wrapper(data: Any) -> None:
                     try:
-                        tx = self.get_tx_from_notification(subscription_type, data)
+                        tx = self.get_tx_from_notification(
+                            subscription_type, data, poll_timeout=tx_fetch_timeout
+                        )
                         if tx_on_fetch:
                             tx_on_fetch(tx, data)
                     except Exception as e:
@@ -576,7 +590,7 @@ class BaseClient:
             # Main loop
             while True:
                 # Wait for new notifications
-                notification = await asyncio.wait_for(ws.recv(), timeout=15)
+                notification = await asyncio.wait_for(ws.recv(), timeout=ws_timeout)
                 await process_notification(notification, subscription_id)
                 if once:
                     return
