@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any, Awaitable, Callable, List, Tuple, Union, cast
 
 from eth_account import Account
@@ -13,6 +14,7 @@ from eth_typing.encoding import HexStr
 from hexbytes import HexBytes
 from web3 import Web3
 from web3.contract.contract import Contract, ContractFunction
+from web3.exceptions import TransactionNotFound
 from web3.gas_strategies import rpc
 from web3.types import (
     BlockData,
@@ -295,20 +297,6 @@ class BaseClient:
         signed_tx = self.sign_tx(tx)
         return self.send_signed_tx(signed_tx)
 
-    def get_tx_receipt(self, txHash: HexStr) -> TxReceipt:
-        """
-        Given a transaction hash, wait for the blockchain to confirm
-        it and return the tx receipt.
-        """
-        return self.w3.eth.wait_for_transaction_receipt(txHash)
-
-    def get_tx(self, txHash: Union[HexStr, HexBytes]) -> TxData:
-        """
-        Given a transaction hash, get the transaction; will raise error
-        if the transaction has not been mined yet.
-        """
-        return self.w3.eth.get_transaction(txHash)
-
     def send_eth(
         self,
         to: Address,
@@ -340,6 +328,63 @@ class BaseClient:
             to, value_in_wei, nonce, gas_limit, max_priority_fee_in_gwei
         )
         return self.sign_and_send_tx(tx)
+
+    ####################
+    # Get Txs
+    ####################
+
+    def get_tx_receipt(self, tx_hash: HexStr) -> TxReceipt:
+        """
+        Given a transaction hash, wait for the blockchain to confirm
+        it and return the tx receipt.
+        """
+        return self.w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    def get_tx(self, tx_hash: Union[HexStr, HexBytes]) -> TxData:
+        """
+        Given a transaction hash, get the transaction; will raise error
+        if the transaction has not been mined yet.
+        """
+        return self.w3.eth.get_transaction(tx_hash)
+
+    def poll_tx(
+        self, tx_hash: HexStr, poll_interval: int = 1, poll_timeout: int = 10
+    ) -> TxData:
+        """Get a transaction from the blockchain. If the transaction is not
+        found, poll until it is found. If it is not found after poll_timeout
+        seconds, raises web3.exceptions.TransactionNotFound.
+
+        ARGUMENTS
+        ---------
+        - tx_hash (str): The transaction hash.
+        - poll_interval (int): The number of seconds to wait between polls. Set
+        to None to disable polling.
+        - poll_timeout (int): The number of seconds to wait before timing out.
+        Set to None to wait indefinitely. Set to zero to disable polling.
+        """
+        if poll_interval is None:
+            return self.get_tx(tx_hash)
+
+        start_time = time.time()
+        while True:
+            try:
+                return self.get_tx(tx_hash)
+            except TransactionNotFound as e:
+                time.sleep(poll_interval)
+                if time.time() - start_time > poll_timeout:
+                    raise e
+
+    def get_tx_from_notification(self, subscription_type: str, data: Any) -> TxData:
+        """Given an eth_subscribe notification, return the transaction data."""
+        if subscription_type == "newPendingTransactions":
+            tx_hash = data
+        elif subscription_type == "logs":
+            tx_hash = data["transactionHash"]
+        else:
+            raise Web3ClientException(
+                f"Cannot extract transaction from notifications of type '{subscription_type}'"
+            )
+        return self.poll_tx(tx_hash)
 
     ####################
     # Messages
@@ -534,9 +579,9 @@ class BaseClient:
                 f"Gas too expensive [fee={gas_fee_in_gwei} gwei, max={self.upper_limit_for_base_fee_in_gwei} gwei]"
             )
 
-    ####################
-    # Read
-    ####################
+    ######################
+    # Misc read functions
+    ######################
 
     def get_nonce(self, address: Address = None) -> Nonce:
         if not address:
