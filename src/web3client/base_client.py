@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Any, Awaitable, Callable, List, Tuple, Union, cast
+from typing import Any, Callable, List, Tuple, Union, cast
 
 from eth_account import Account
 from eth_account.datastructures import SignedMessage, SignedTransaction
@@ -31,7 +31,11 @@ from websockets.client import connect
 
 from web3client.exceptions import TransactionTooExpensive, Web3ClientException
 from web3client.helpers.websockets import parse_notification, subscribe_to_notification
-from web3client.types import SubscriptionType
+from web3client.types import (
+    AsyncSubscriptionCallback,
+    SubscriptionCallback,
+    SubscriptionType,
+)
 
 
 class BaseClient:
@@ -417,7 +421,7 @@ class BaseClient:
 
     def subscribe(
         self,
-        on_notification: Callable[[Any, SubscriptionType], None],
+        on_notification: SubscriptionCallback,
         on_subscribe: Callable[[Any, SubscriptionType], None] = None,
         once: bool = False,
         subscription_type: SubscriptionType = "newPendingTransactions",
@@ -451,9 +455,6 @@ class BaseClient:
         Details:
 
          - Provid once=True to stop the subscription after the first occurrency.
-         - Use tx_from, tx_to and tx_value to filter transactions by sender, receiver
-           and value.  The value is a tuple (min, max) in ETH.  To create finer filters,
-           it is recommended to customize the on_notification callback.
          - If you use Alchemy, you might want to use 'alchemy_newPendingTransactions'
            (https://docs.alchemy.com/reference/newpendingtransactions)
          - Subscription is good to react fast to changes on the blockchain, but you might
@@ -461,6 +462,22 @@ class BaseClient:
            filters (eth_filter).
          - To raise an error when no notification is received for a while, set ws_timeout
            to a value in seconds.
+
+        Transaction filters:
+         - Use tx_from, tx_to and tx_value to filter transactions by sender, receiver
+           and value.  The value is a tuple (min, max) in ETH.
+         - Transaction filters are meant as a convenience to avoid fetching and filtering
+           transactions manually in the callback.  Finer-grained filters should be
+           implemented directly at the callback level.
+         - When using tx filters, the on_notification callback will receive the transaction
+           data as third argument.
+         - If any of the tx filters is used, the client will fetch every single transaction
+           it receives.  Be aware that this might put stress in the node especially if you
+           use the pending transactions subscription.
+         - If you use tx_from, tx_to or tx_value, you can optionally pass a callback
+           tx_on_fetch(tx, data) that will be called after fetching the transaction,
+           and a callback tx_on_fetch_error(e, data) that will be called if the
+           transaction cannot be fetched.
 
         Caveats:
 
@@ -488,7 +505,7 @@ class BaseClient:
 
             # Simple case: no filtering based on tx
             if not tx_from and not tx_to and not tx_value:
-                on_notification(data, subscription_type)
+                on_notification(data, subscription_type, None)
 
             # Complex case: filter based on tx
             # TODO: There can be many logs per transaction.  Make sure
@@ -506,7 +523,7 @@ class BaseClient:
                     return
 
                 if self.filter_tx(tx, tx_from, tx_to, tx_value):
-                    on_notification(data, subscription_type)
+                    on_notification(data, subscription_type, tx)
 
         async def main() -> None:
             # Connect to websocket
@@ -527,7 +544,7 @@ class BaseClient:
 
     async def async_subscribe(
         self,
-        on_notification: Callable[[Any, SubscriptionType], Awaitable[None]],
+        on_notification: AsyncSubscriptionCallback,
         on_subscribe: Callable[[Any, SubscriptionType], None] = None,
         once: bool = False,
         subscription_type: SubscriptionType = "newPendingTransactions",
@@ -563,7 +580,7 @@ class BaseClient:
 
             # Simple case: no filtering based on tx
             if not tx_from and not tx_to and not tx_value:
-                asyncio.create_task(on_notification(data))  # type: ignore
+                asyncio.create_task(on_notification(data, subscription_type, None))  # type: ignore
 
             # Complex case: filter based on tx
             else:
@@ -580,7 +597,7 @@ class BaseClient:
                             tx_on_fetch_error(e, data)
                         return
                     if self.filter_tx(tx, tx_from, tx_to, tx_value):
-                        await on_notification(data, subscription_type)
+                        await on_notification(data, subscription_type, tx)
 
                 asyncio.create_task(on_notification_wrapper(data))
 
