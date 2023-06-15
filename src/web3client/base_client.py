@@ -5,6 +5,7 @@ import json
 import time
 from typing import Any, Callable, List, Tuple, Union, cast
 
+import websockets
 from eth_account import Account
 from eth_account.datastructures import SignedMessage, SignedTransaction
 from eth_account.messages import encode_defunct
@@ -425,6 +426,7 @@ class BaseClient:
         self,
         on_notification: SubscriptionCallback,
         on_subscribe: Callable[[Any, SubscriptionType], None] = None,
+        on_connection_closed: Callable[[Exception, SubscriptionType], None] = None,
         once: bool = False,
         subscription_type: SubscriptionType = "newPendingTransactions",
         logs_addresses: List[Address] = None,
@@ -468,6 +470,10 @@ class BaseClient:
            filters (eth_filter).
          - To raise an error when no notification is received for a while, set ws_timeout
            to a value in seconds.
+         - The function will automatically try to reconnect if the connection is closed.
+           This can happen when the network is unstable or when the node is restarted.
+           To exit instead, raise an exception in the callback on_connection_closed
+           (e, subscription_type).
 
         Transaction filters:
          - Use tx_from, tx_to and tx_value to filter transactions by sender, receiver
@@ -533,18 +539,25 @@ class BaseClient:
 
         async def main() -> None:
             # Connect to websocket
-            async with connect(self.node_uri) as ws:
-                # Subscribe to the notification type
-                subscription_id = await subscribe_to_notification(
-                    ws, subscription_type, on_subscribe, logs_addresses, logs_topics
-                )
-                # Main loop
-                while True:
-                    # Wait for new notifications
-                    notification = await asyncio.wait_for(ws.recv(), timeout=ws_timeout)
-                    process_notification(notification, subscription_id)
-                    if once:
-                        return
+            async for ws in connect(self.node_uri):
+                try:
+                    # Subscribe to the notification type
+                    subscription_id = await subscribe_to_notification(
+                        ws, subscription_type, on_subscribe, logs_addresses, logs_topics
+                    )
+                    # Main loop
+                    while True:
+                        # Wait for new notifications
+                        notification = await asyncio.wait_for(
+                            ws.recv(), timeout=ws_timeout
+                        )
+                        process_notification(notification, subscription_id)
+                        if once:
+                            return
+                except websockets.exceptions.ConnectionClosedError as e:
+                    if on_connection_closed:
+                        on_connection_closed(e, subscription_type)
+                    continue
 
         asyncio.run(main())
 
@@ -552,6 +565,7 @@ class BaseClient:
         self,
         on_notification: AsyncSubscriptionCallback,
         on_subscribe: Callable[[Any, SubscriptionType], None] = None,
+        on_connection_closed: Callable[[Exception, SubscriptionType], None] = None,
         once: bool = False,
         subscription_type: SubscriptionType = "newPendingTransactions",
         logs_addresses: List[Address] = None,
@@ -608,18 +622,23 @@ class BaseClient:
                 asyncio.create_task(on_notification_wrapper(data))
 
         # Connect to websocket
-        async with connect(self.node_uri) as ws:
-            # Subscribe to the notification type
-            subscription_id = await subscribe_to_notification(
-                ws, subscription_type, on_subscribe, logs_addresses, logs_topics
-            )
-            # Main loop
-            while True:
-                # Wait for new notifications
-                notification = await asyncio.wait_for(ws.recv(), timeout=ws_timeout)
-                await process_notification(notification, subscription_id)
-                if once:
-                    return
+        async for ws in connect(self.node_uri):
+            try:
+                # Subscribe to the notification type
+                subscription_id = await subscribe_to_notification(
+                    ws, subscription_type, on_subscribe, logs_addresses, logs_topics
+                )
+                # Main loop
+                while True:
+                    # Wait for new notifications
+                    notification = await asyncio.wait_for(ws.recv(), timeout=ws_timeout)
+                    await process_notification(notification, subscription_id)
+                    if once:
+                        return
+            except websockets.exceptions.ConnectionClosedError as e:
+                if on_connection_closed:
+                    on_connection_closed(e, subscription_type)
+                continue
 
     ####################
     # Gas
