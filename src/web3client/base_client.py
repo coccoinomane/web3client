@@ -31,6 +31,7 @@ from websockets.client import connect
 
 from web3client.exceptions import TransactionTooExpensive, Web3ClientException
 from web3client.helpers.websockets import parse_notification, subscribe_to_notification
+from web3client.types import SubscriptionType
 
 
 class BaseClient:
@@ -416,10 +417,10 @@ class BaseClient:
 
     def subscribe(
         self,
-        on_notification: Callable[[Any], None],
-        on_subscribe: Callable[[Any], None] = None,
+        on_notification: Callable[[Any, SubscriptionType], None],
+        on_subscribe: Callable[[Any, SubscriptionType], None] = None,
         once: bool = False,
-        subscription_type: str = "newPendingTransactions",
+        subscription_type: SubscriptionType = "newPendingTransactions",
         logs_addresses: List[Address] = None,
         logs_topics: List[str] = None,
         tx_from: List[Address] = None,
@@ -487,9 +488,11 @@ class BaseClient:
 
             # Simple case: no filtering based on tx
             if not tx_from and not tx_to and not tx_value:
-                on_notification(data)
+                on_notification(data, subscription_type)
 
             # Complex case: filter based on tx
+            # TODO: There can be many logs per transaction.  Make sure
+            # you cache the tx data to avoid fetching it multiple times.
             else:
                 try:
                     tx = self.get_tx_from_notification(
@@ -503,7 +506,7 @@ class BaseClient:
                     return
 
                 if self.filter_tx(tx, tx_from, tx_to, tx_value):
-                    on_notification(data)
+                    on_notification(data, subscription_type)
 
         async def main() -> None:
             # Connect to websocket
@@ -524,10 +527,10 @@ class BaseClient:
 
     async def async_subscribe(
         self,
-        on_notification: Callable[[Any], Awaitable[None]],
-        on_subscribe: Callable[[Any], None] = None,
+        on_notification: Callable[[Any, SubscriptionType], Awaitable[None]],
+        on_subscribe: Callable[[Any, SubscriptionType], None] = None,
         once: bool = False,
-        subscription_type: str = "newPendingTransactions",
+        subscription_type: SubscriptionType = "newPendingTransactions",
         logs_addresses: List[Address] = None,
         logs_topics: List[str] = None,
         tx_from: List[Address] = None,
@@ -577,7 +580,7 @@ class BaseClient:
                             tx_on_fetch_error(e, data)
                         return
                     if self.filter_tx(tx, tx_from, tx_to, tx_value):
-                        await on_notification(data)
+                        await on_notification(data, subscription_type)
 
                 asyncio.create_task(on_notification_wrapper(data))
 

@@ -5,12 +5,13 @@ from eth_typing import Address
 from websockets.client import WebSocketClientProtocol
 
 from web3client.exceptions import Web3ClientException
+from web3client.types import SubscriptionType
 
 
 async def subscribe_to_notification(
     ws: WebSocketClientProtocol,
-    type: str,
-    on_subscribe: Callable[[Any], None] = None,
+    type: SubscriptionType,
+    on_subscribe: Callable[[Any, SubscriptionType], None] = None,
     logs_addresses: List[Address] = None,
     logs_topics: List[str] = None,
 ) -> str:
@@ -42,11 +43,13 @@ async def subscribe_to_notification(
         raise Web3ClientException(f"Failed to subscribe to {type}: {e}")
     # Call on_subscribe callback
     if on_subscribe:
-        on_subscribe(json.loads(subscription_response))
+        on_subscribe(json.loads(subscription_response), type)
     return subscription_id
 
 
-def parse_notification(notification: Union[str, bytes], type: str) -> Tuple[str, Any]:
+def parse_notification(
+    notification: Union[str, bytes], type: SubscriptionType
+) -> Tuple[str, Any]:
     """Given a notification, return the subscription ID and
     notification data"""
     try:

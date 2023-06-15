@@ -1,4 +1,4 @@
-- Subscribe to logs.  Logs subscription requires [an optional object arguments](https://geth.ethereum.org/docs/interacting-with-geth/rpc/pubsub) to specify address and topics.
+- Subscribe: There can be many logs per transaction.  Make sure you cache the tx data to avoid fetching it multiple times.
 - Ape tests
 - Merge with [web3core](https://github.com/coccoinomane/web3cli/tree/master/src/web3core)?
 - Automatically convert addresses to checksum
