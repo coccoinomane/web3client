@@ -30,7 +30,7 @@ from web3.types import (
 from websockets.client import connect
 
 from web3client.exceptions import TransactionTooExpensive, Web3ClientException
-from web3client.helpers.websockets import parse_notification, subscribe_to_notification
+from web3client.helpers.subscribe import parse_notification, subscribe_to_notification
 from web3client.types import (
     AsyncSubscriptionCallback,
     SubscriptionCallback,
@@ -341,19 +341,20 @@ class BaseClient:
     def get_tx_receipt(self, tx_hash: HexStr) -> TxReceipt:
         """
         Given a transaction hash, wait for the blockchain to confirm
-        it and return the tx receipt.
+        it and fetch the tx receipt.
         """
         return self.w3.eth.wait_for_transaction_receipt(tx_hash)
 
     def get_tx(self, tx_hash: Union[HexStr, HexBytes]) -> TxData:
         """
-        Given a transaction hash, get the transaction; will raise error
-        if the transaction has not been mined yet.
+        Given a transaction hash, fetch the transaction data from
+        the blockchain; will raise error if the transaction has not
+        been mined yet.
         """
         return self.w3.eth.get_transaction(tx_hash)
 
     def poll_tx(self, tx_hash: HexStr, interval: int = 1, timeout: int = 10) -> TxData:
-        """Get a transaction from the blockchain. If the transaction is not
+        """Fetch a transaction from the blockchain. If the transaction is not
         found, poll until it is found. If it is not found after poll_timeout
         seconds, raises web3.exceptions.TransactionNotFound.
 
@@ -379,12 +380,13 @@ class BaseClient:
 
     def get_tx_from_notification(
         self,
-        subscription_type: str,
+        subscription_type: SubscriptionType,
         data: Any,
         poll_interval: int = 1,
         poll_timeout: int = 10,
     ) -> TxData:
-        """Given an eth_subscribe notification, return the transaction data."""
+        """Given an eth_subscribe notification, extract the transaction hash from it,
+        fetch the corresponding transaction, then return the transaction data."""
         if subscription_type == "newPendingTransactions":
             tx_hash = data
         elif subscription_type == "logs":
@@ -444,12 +446,16 @@ class BaseClient:
         Subscription types (same as eth_subscribe RPC method):
 
          - Use 'newHeads' to listen to new blocks. The callback receives a dict with
-           the block parameters as argument.
+           the block parameters as first argument.
          - Use 'newPendingTransactions' to listen to pending transactions. The callback
-           receives the transaction hash as argument.
+           receives the transaction hash as first argument.
          - Use 'logs' to listen to contract event logs. The callback receives a dict
-           with the smart contract address, block info and the 'data' field. If you
-           want to filter by contract address and/or topics, pass them as arguments.
+           with the smart contract address, the 'data' input field, the 'topics' fields
+           plus info on the block and the transaction. If you want to filter by contract
+           address and/or topics, pass them as arguments.
+         - Regardless of the subscription type, the callback receives the subscription
+           type as second argument.  If using transaction filters (see below) then the
+           callback receives the fetched transaction data as third argument.
          - For a full reference, see https://geth.ethereum.org/docs/interacting-with-geth/rpc/pubsub
 
         Details:
