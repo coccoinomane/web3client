@@ -554,7 +554,10 @@ class BaseClient:
                         process_notification(notification, subscription_id)
                         if once:
                             return
-                except websockets.exceptions.ConnectionClosedError as e:
+                except (
+                    websockets.exceptions.ConnectionClosedError,
+                    websockets.exceptions.ConnectionClosedOK,
+                ) as e:
                     if on_connection_closed:
                         on_connection_closed(e, subscription_type)
                     continue
@@ -635,7 +638,10 @@ class BaseClient:
                     await process_notification(notification, subscription_id)
                     if once:
                         return
-            except websockets.exceptions.ConnectionClosedError as e:
+            except (
+                websockets.exceptions.ConnectionClosedError,
+                websockets.exceptions.ConnectionClosedOK,
+            ) as e:
                 if on_connection_closed:
                     on_connection_closed(e, subscription_type)
                 continue
