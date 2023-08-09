@@ -69,6 +69,14 @@ exclude = [
     '__pypackages__',
 ]
 
+[tool.pytest.ini_options]
+filterwarnings = "ignore::DeprecationWarning"
+markers = [
+    "remote: tests that need an internet connection (deselect with '-m \"not remote\"')",
+    "local: tests that require a local blockchain to be run, e.g. ganache, anvil or hardhat network (deselect with '-m \"not local\"')",
+    "contracts: tests of the ape contracts",
+]
+
 [tool.isort]
 profile = "black"
 src_paths = ["src", "tests"]

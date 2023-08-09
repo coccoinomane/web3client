@@ -702,7 +702,7 @@ class BaseClient:
     def get_nonce(self, address: Address = None) -> Nonce:
         if not address:
             address = self.user_address
-        return self.w3.eth.get_transaction_count(address)
+        return self.w3.eth.get_transaction_count(Web3.to_checksum_address(address))
 
     def get_latest_block(self) -> BlockData:
         """

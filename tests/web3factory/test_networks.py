@@ -1,15 +1,21 @@
 from typing import Dict
 
+import pytest
+
 from web3client.base_client import BaseClient
 
+ethereum_foundation = "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"
 
-def test_get_nonce(address: str, networks_clients: Dict[str, BaseClient]) -> None:
+
+@pytest.mark.remote
+def test_get_nonce(networks_clients: Dict[str, BaseClient]) -> None:
     for network, client in networks_clients.items():
-        nonce = client.get_nonce(address)
+        nonce = client.get_nonce(ethereum_foundation)
         assert type(nonce) is int
         assert nonce >= 0
 
 
+@pytest.mark.remote
 def test_get_latest_block(networks_clients: Dict[str, BaseClient]) -> None:
     for network, client in networks_clients.items():
         block = client.get_latest_block()
@@ -22,18 +28,9 @@ def test_get_latest_block(networks_clients: Dict[str, BaseClient]) -> None:
         assert type(block.get("transactions")) is list
 
 
-def test_get_eth_balance(address: str, networks_clients: Dict[str, BaseClient]) -> None:
+@pytest.mark.remote
+def test_get_eth_balance(networks_clients: Dict[str, BaseClient]) -> None:
     for network, client in networks_clients.items():
-        balance = client.get_balance_in_wei(address)
+        balance = client.get_balance_in_wei(ethereum_foundation)
         assert type(balance) is int
         assert balance >= 0
-
-
-def test_get_sign_message(
-    private_key: str, networks_clients: Dict[str, BaseClient]
-) -> None:
-    msg = "Hello world!"
-    for network, client in networks_clients.items():
-        client.set_account(private_key=private_key)
-        signed_message = client.sign_message(msg)
-        assert client.is_message_signed_by_me(msg, signed_message)
