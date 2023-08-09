@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 from functools import cached_property
 
 from eth_typing import Address, HexStr
@@ -63,10 +64,22 @@ class Erc20Client(BaseClient):
     # Read
     ####################
 
-    def balanceOf(self, address: Address) -> int:
+    def balance(self, address: Address = None) -> Decimal:
         """
-        Return the amount held by the given address
+        Return the amount held by the given address; if no address is
+        specified, return the amount held by the client's account
         """
+        balance_in_wei = self.balance_in_wei(address)
+        return self.from_wei(balance_in_wei, self.decimals)
+
+    def balance_in_wei(self, address: Address = None) -> int:
+        """
+        Return the amount held by the given address, in wei; if no
+        address is specified, return the amount held by the client's
+        account
+        """
+        if not address:
+            address = self.account.address
         return self.contract.functions.balanceOf(
             Web3.to_checksum_address(address)
         ).call()
@@ -86,7 +99,7 @@ class Erc20Client(BaseClient):
         return self.contract.functions.symbol().call()
 
     @cached_property
-    def totalSupply(self) -> int:
+    def total_supply(self) -> int:
         """
         Return the total supply of the token
         """
@@ -145,14 +158,11 @@ class Erc20Client(BaseClient):
             max_priority_fee_in_gwei,
         )
 
-    ####################
-    # Static
-    ####################
-
     @staticmethod
-    def from_wei(amount: int, decimals: int) -> float:
+    def from_wei(amount: int, decimals: int) -> Decimal:
         """
-        Given an amount in Wei, return the equivalent amount in
-        ETH units
+        Given an amount in wei, return the equivalent amount in
+        token units.  Here by wei we mean the smallest subdivision
+        of the token (e.g. 1/10**6 for USDC, 1/10**18 for UNI).
         """
-        return amount / 10**decimals
+        return amount / Decimal(10**decimals)
