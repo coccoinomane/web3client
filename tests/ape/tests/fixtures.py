@@ -4,7 +4,7 @@ PyTest Fixtures.
 
 import json
 from pathlib import Path
-from typing import Iterator, List
+from typing import Any, Iterator, List, cast
 
 import pytest
 from web3.types import ABI
@@ -33,7 +33,13 @@ def ape_chain_uri(
     chain: ape.managers.chain.ChainManager,
 ) -> str:
     """Return the URI of the local chain"""
-    return chain.provider.uri
+    try:
+        return cast(Any, chain.provider).uri
+    except AttributeError:
+        try:
+            return cast(Any, chain.provider).web3.provider.endpoint_uri
+        except AttributeError:
+            return "http://localhost:8545"
 
 
 @pytest.fixture(scope="session")

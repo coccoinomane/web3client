@@ -30,7 +30,7 @@ dev = [
 ]
 
 [tool.pdm.scripts]
-test = "ape test tests"
+test = "ape test tests --network ::foundry"
 publish_test = "pdm publish -r testpypi -u ${PDM_PUBLISH_TEST_USERNAME} -P ${PDM_PUBLISH_TEST_PASSWORD}"
 release = "gh release create v{args} dist/web3client-{args}.tar.gz dist/web3client-{args}-py3-none-any.whl --generate-notes"
 
