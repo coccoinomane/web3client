@@ -58,7 +58,7 @@ class BaseClient:
     Attributes
     ----------------------
     node_uri: str | RPC node to use.  Set it to None for a uninitialized client.
-    chain_id: int = None | ID of the chain
+    chain_id: int = None | ID of the chain.  If not given, it will be inferred from the node.
     tx_type: int = 2 | Type of transaction: 1 for pre-EIP-1599, 2 for EIP-1599. More details here > https://docs.infura.io/infura/networks/ethereum/concepts/transaction-types
     private_key: str = None | Private key to use (optional)
     max_priority_fee_in_gwei: float = 1 | Miner's tip, relevant only for type-2 transactions (optional, default is 1)
@@ -167,7 +167,7 @@ class BaseClient:
 
         # Properties that you are not likely to change
         tx: TxParams = {
-            "chainId": self.chain_id,
+            "chainId": self.chain_id or self.w3.eth.chain_id,
             "from": self.user_address,
         }
 
