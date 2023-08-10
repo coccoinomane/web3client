@@ -1,11 +1,9 @@
-"""Helper functions to better run tests"""
-
 import ape
 
 
 def deploy_token(
-    Token: ape.contracts.ContractContainer,
     accounts: ape.managers.accounts.AccountManager,
+    token_container: ape.contracts.ContractContainer,
     name: str = "Test Token",
     symbol: str = "TST",
     decimals: int = 18,
@@ -15,7 +13,7 @@ def deploy_token(
     """Deploy a test token, and distribute it to all accounts. The token
     will be deployed by alice (accounts[0]) and optionally distributed
     to all other accounts."""
-    token = Token.deploy(
+    token = token_container.deploy(
         name, symbol, decimals, initial_supply * 10**decimals, sender=accounts[0]
     )
     if distribute:

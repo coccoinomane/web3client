@@ -175,8 +175,8 @@ def WETH(
     we will use as if it were WETH. Supply of 1 billion tokens, shared between
     all accounts."""
     return deploy_token(
-        Token,
         accounts,
+        Token,
         f"WrappedEther",
         f"WETH",
         18,
@@ -193,8 +193,8 @@ def TST(
     """TST token deployed on the local chain, with 18 decimals.
     Supply of 1 billion tokens, shared between all accounts."""
     return deploy_token(
-        Token,
         accounts,
+        Token,
         f"Test token (18 decimals)",
         f"TST",
         18,
@@ -211,8 +211,8 @@ def TST_0(
     """TST_0 token deployed on the local chain, with 18 decimals.
     Supply of 1 billion tokens, shared between all accounts."""
     return deploy_token(
-        Token,
         accounts,
+        Token,
         f"Test token 0 (18 decimals)",
         f"TST_0",
         18,
@@ -229,8 +229,8 @@ def TST_1(
     """TST_1 token deployed on the local chain, with 18 decimals.
     Supply of 1 billion tokens, shared between all accounts."""
     return deploy_token(
-        Token,
         accounts,
+        Token,
         f"Test token 1 (18 decimals)",
         f"TST_1",
         18,
@@ -247,8 +247,8 @@ def TST6(
     """TST6 token deployed on the local chain, with 6 decimals.
     Supply of 1 billion tokens, shared between all accounts"""
     return deploy_token(
-        Token,
         accounts,
+        Token,
         f"Test token (6 decimals)",
         f"TST6",
         6,
@@ -265,8 +265,8 @@ def TST6_0(
     """TST6_0 token deployed on the local chain, with 6
     decimals; each account will have a billion tokens"""
     return deploy_token(
-        Token,
         accounts,
+        Token,
         f"Test token 0 (6 decimals)",
         f"TST6_0",
         6,
@@ -283,8 +283,8 @@ def TST6_1(
     """TST6_1 token deployed on the local chain, with 6
     decimals; each account will have a billion tokens"""
     return deploy_token(
-        Token,
         accounts,
+        Token,
         f"Test token 1 (6 decimals)",
         f"TST6_1",
         6,
