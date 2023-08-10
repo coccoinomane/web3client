@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from os.path import dirname, isfile, realpath
+from pathlib import Path
 from typing import Any, Callable, List, Tuple, Union, cast
 
 import websockets
@@ -14,7 +16,7 @@ from eth_typing import Address
 from eth_typing.encoding import HexStr
 from hexbytes import HexBytes
 from web3 import Web3
-from web3.contract.contract import Contract, ContractFunction
+from web3.contract.contract import Contract, ContractFunction, ContractFunctions
 from web3.exceptions import TransactionNotFound
 from web3.gas_strategies import rpc
 from web3.types import (
@@ -47,14 +49,6 @@ class BaseClient:
     The client is a wrapper intended to make the Web3 library
     easier to use.
 
-    There are three ways to use the base client class:
-    1. Instantiate an object representing a blockchain and, optionally,
-       a smart contract.
-    2. Specialize it by making a subclass. Override the parameters
-       to match the desired blockchain and, optionally, contract.
-    3. If the blockchain and contract you need to use is supported,
-       just use one of the 'make' methods in factory.py.
-
     Attributes
     ----------------------
     node_uri: str | RPC node to use.  Set it to None for a uninitialized client.
@@ -64,7 +58,7 @@ class BaseClient:
     max_priority_fee_in_gwei: float = 1 | Miner's tip, relevant only for type-2 transactions (optional, default is 1)
     upper_limit_for_base_fee_in_gwei: float = inf | Raise an exception if baseFee is larger than this (optional, default is no limit)
     contract_address: Address = None | Address of smart contract (optional)
-    abi: dict[str, Any] = None | ABI of smart contract; to generate from a JSON file, use static method get_contract_abi_from_file() (optional)
+    abi: dict[str, Any] = None | ABI of smart contract; to read from a JSON file, use class method get_abi_json() (optional)
     middlewares: List[Middleware] = [] | Ordered list of web3.py middlewares to use (optional, default is no middlewares)
 
 
@@ -76,6 +70,28 @@ class BaseClient:
     contract: Contract = None | Contract object of web3.py
     functions: ContractFunctions = None | ContractFunctions object of web3.py
     """
+
+    # Attributes that can be set in the constructor or
+    # overridden by subclasses
+    node_uri: str = None
+    chain_id: int = None
+    tx_type: int = None
+    private_key: str = None
+    max_priority_fee_in_gwei: float = None
+    upper_limit_for_base_fee_in_gwei: float = None
+    abi: dict[str, Any] = None
+    contract_address: Address = None
+    middlewares: List[Middleware] = None
+
+    # Derived attributes
+    w3: Web3
+    account: LocalAccount
+    user_address: Address
+    contract: Contract
+    functions: ContractFunctions
+
+    # Class attributes
+    abi_dir: Union[Path, str] = Path(dirname(realpath(__file__))) / "abi"
 
     def __init__(
         self,
@@ -89,24 +105,25 @@ class BaseClient:
         abi: dict[str, Any] = None,
         middlewares: List[Middleware] = [],
     ) -> None:
-        # Set attributes
-        self.chain_id: int = chain_id
-        self.tx_type: int = tx_type
-        self.max_priority_fee_in_gwei: float = max_priority_fee_in_gwei
-        self.upper_limit_for_base_fee_in_gwei: float = upper_limit_for_base_fee_in_gwei
-        # Initialize web3.py provider
+        # Set the w3 client
         self.set_provider(node_uri)
-        # User account
+
+        # Set attributes.  The 'if' part is to allow subclasses to override
+        # the parameters.
+        if chain_id:
+            self.chain_id = chain_id
+        if tx_type:
+            self.tx_type = tx_type
         if private_key:
             self.set_account(private_key)
-        # Initialize the contract
-        # TODO: we should be able to load an ABI without a specific address.
-        # This might be useful to access the ABI decoding functions of web3.
-        # For example, to read events from a tx only the ABI is needed, you
-        # do not need the token address.
-        if contract_address and abi:
-            self.set_contract(contract_address, abi)
-        # Add web3.py middlewares
+        if max_priority_fee_in_gwei:
+            self.max_priority_fee_in_gwei = max_priority_fee_in_gwei
+        if upper_limit_for_base_fee_in_gwei:
+            self.upper_limit_for_base_fee_in_gwei = upper_limit_for_base_fee_in_gwei
+        if abi:
+            self.abi = abi
+        if contract_address:
+            self.set_contract(contract_address)
         if middlewares:
             self.set_middlewares(middlewares)
 
@@ -115,30 +132,32 @@ class BaseClient:
     ####################
 
     def set_provider(self, node_uri: str) -> BaseClient:
-        self.node_uri: str = node_uri
+        self.node_uri = node_uri
         self.w3 = self.get_provider(node_uri)
         return self
 
     def set_account(self, private_key: str) -> BaseClient:
-        self.private_key: str = private_key
-        self.account: LocalAccount = Account.from_key(private_key)
-        self.user_address: Address = self.account.address
+        self.private_key = private_key
+        self.account = Account.from_key(private_key)
+        self.user_address = self.account.address
         self.w3.eth.default_account = self.account.address
         return self
 
     def set_contract(
-        self, contract_address: Address, abi: dict[str, Any]
+        self, contract_address: Address, abi: dict[str, Any] = None
     ) -> BaseClient:
-        self.contract_address: Address = cast(
+        abi = abi or self.abi
+        if not abi:
+            raise Web3ClientException("ABI not set")
+        self.contract_address = cast(
             Address, Web3.to_checksum_address(contract_address)
         )
-        self.abi: dict[str, Any] = abi
-        self.contract = self.getContract(contract_address, self.w3, abi=abi)
+        self.contract = self.get_contract(contract_address, self.w3, abi=abi)
         self.functions = self.contract.functions
         return self
 
     def set_middlewares(self, middlewares: List[Middleware]) -> BaseClient:
-        self.middlewares: List[Middleware] = middlewares
+        self.middlewares = middlewares
         for i, m in enumerate(middlewares):
             self.w3.middleware_onion.inject(m, layer=i)
         return self
@@ -788,24 +807,42 @@ class BaseClient:
     ####################
 
     @staticmethod
-    def getContract(
+    def get_contract(
         address: Address,
         provider: Web3,
         abi_file: str = None,
         abi: dict[str, Any] = None,
     ) -> Contract:
         """
-        Load the smart contract, required before running
-        build_contract_tx().
+        Return a web3 smart contract from address and ABI.
         """
         checksum = Web3.to_checksum_address(address)
         if abi_file:
-            abi = BaseClient.get_contract_abi_from_file(abi_file)
+            abi = BaseClient.get_abi_json(abi_file)
         return provider.eth.contract(address=checksum, abi=abi)
 
-    @staticmethod
-    def get_contract_abi_from_file(file_name: str) -> Any:
-        with open(file_name, encoding="utf-8") as file:
+    @classmethod
+    def get_abi_json(cls, file_name: str, abi_dir: Union[str, Path] = None) -> Any:
+        """Read the ABI from a JSON file.  The file will be searched
+        in abi_dir, in self.abi_dir and in the current directory."""
+
+        # Search the file
+        file_path = None
+        search_paths = []
+        if abi_dir:
+            search_paths.append(Path(abi_dir) / file_name)
+        search_paths.append(Path(cls.abi_dir) / file_name)
+        search_paths.append(Path(file_name))
+
+        for path in search_paths:
+            if isfile(path):
+                file_path = path
+                break
+        if not file_path:
+            raise FileNotFoundError(f"ABI file {file_name} not found")
+
+        # Read the file
+        with open(file_path, encoding="utf-8") as file:
             return json.load(file)
 
     @staticmethod

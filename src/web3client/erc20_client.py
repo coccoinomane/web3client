@@ -1,4 +1,3 @@
-import os
 from decimal import Decimal
 from functools import cached_property
 
@@ -20,8 +19,7 @@ class Erc20Client(BaseClient):
     write functions (transfer, approve, etc.)
 
     The token properties (name, symbol, total_supply, decimals) can be
-    accessed as attributes, and will be fetched from the blockchain only
-    once.
+    accessed as attributes, and are cached.
 
     AMOUNTS
     =======
@@ -34,31 +32,7 @@ class Erc20Client(BaseClient):
       of 1 is equal to 1/10^18 of the token (a single wei).
     """
 
-    abiDir = os.path.dirname(os.path.realpath(__file__)) + "/abi"
-    abi = BaseClient.get_contract_abi_from_file(abiDir + "/erc20.json")
-
-    def __init__(
-        self,
-        node_uri: str,
-        chain_id: int = None,
-        tx_type: int = 2,
-        private_key: str = None,
-        max_priority_fee_in_gwei: float = 1,
-        upper_limit_for_base_fee_in_gwei: float = float("inf"),
-        contract_address: Address = None,
-    ) -> None:
-        if not contract_address:
-            raise ValueError("You must specify a contract address")
-        super().__init__(
-            node_uri,
-            chain_id,
-            tx_type,
-            private_key,
-            max_priority_fee_in_gwei,
-            upper_limit_for_base_fee_in_gwei,
-            contract_address,
-            self.abi,
-        )
+    abi = BaseClient.get_abi_json("erc20.json")
 
     ####################
     # Read
