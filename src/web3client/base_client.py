@@ -5,7 +5,7 @@ import json
 import time
 from os.path import dirname, isfile, realpath
 from pathlib import Path
-from typing import Any, Callable, List, Tuple, Union, cast
+from typing import Any, Callable, List, Tuple, Type, Union, cast
 
 import websockets
 from eth_account import Account
@@ -805,6 +805,25 @@ class BaseClient:
     ####################
     # Utils
     ####################
+
+    def clone(self, base: Type[BaseClient] = None) -> BaseClient:
+        """
+        Return a clone of this client.
+        """
+        if base is None:
+            base = self.__class__
+
+        return base(
+            node_uri=self.node_uri,
+            chain_id=self.chain_id,
+            tx_type=self.tx_type,
+            private_key=self.private_key,
+            max_priority_fee_in_gwei=self.max_priority_fee_in_gwei,
+            upper_limit_for_base_fee_in_gwei=self.upper_limit_for_base_fee_in_gwei,
+            contract_address=self.contract_address,
+            abi=self.abi,
+            middlewares=self.middlewares,
+        )
 
     @staticmethod
     def get_contract(
