@@ -3,7 +3,7 @@ from functools import cached_property
 
 from eth_typing import Address, HexStr
 from web3 import Web3
-from web3.types import Nonce, Wei
+from web3.types import Nonce
 
 from web3client.base_client import BaseClient
 
@@ -94,7 +94,7 @@ class Erc20Client(BaseClient):
         self,
         to: Address,
         amount: int,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -115,7 +115,7 @@ class Erc20Client(BaseClient):
         self,
         spender: Address,
         amount: int,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,

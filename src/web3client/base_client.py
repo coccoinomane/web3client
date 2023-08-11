@@ -253,7 +253,7 @@ class BaseClient:
     def build_tx_with_value_in_wei(
         self,
         to: Address,
-        value_in_wei: Wei,
+        value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -269,7 +269,7 @@ class BaseClient:
         )
         extra_params: TxParams = {
             "to": to,
-            "value": value_in_wei,
+            "value": cast(Wei, value_in_wei),
             "gas": self.estimate_gas_for_transfer(to, value_in_wei),
         }
         return tx | extra_params
@@ -277,7 +277,7 @@ class BaseClient:
     def build_contract_tx(
         self,
         contract_function: ContractFunction,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -294,7 +294,7 @@ class BaseClient:
             max_priority_fee_in_gwei,
         )
         if value_in_wei:
-            base_tx["value"] = value_in_wei
+            base_tx["value"] = cast(Wei, value_in_wei)
         return contract_function.build_transaction(base_tx)
 
     ####################
@@ -341,7 +341,7 @@ class BaseClient:
     def send_eth_in_wei(
         self,
         to: Address,
-        value_in_wei: Wei,
+        value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -735,7 +735,7 @@ class BaseClient:
         """
         return self.w3.eth.get_block("pending")
 
-    def estimate_gas_for_transfer(self, to: Address, value_in_wei: Wei) -> int:
+    def estimate_gas_for_transfer(self, to: Address, value_in_wei: int) -> int:
         """
         Return the gas that would be required to send some ETH
         (expressed in Wei) to an address
@@ -744,7 +744,7 @@ class BaseClient:
             {
                 "from": self.user_address,
                 "to": to,
-                "value": value_in_wei,
+                "value": cast(Wei, value_in_wei),
             }
         )
 
@@ -783,7 +783,7 @@ class BaseClient:
     def transact(
         self,
         function: ContractFunction,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
