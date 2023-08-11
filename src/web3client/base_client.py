@@ -15,6 +15,7 @@ from eth_account.signers.local import LocalAccount
 from eth_typing import Address
 from eth_typing.encoding import HexStr
 from hexbytes import HexBytes
+from typing_extensions import Self
 from web3 import Web3
 from web3.contract.contract import Contract, ContractFunction, ContractFunctions
 from web3.exceptions import TransactionNotFound
@@ -131,12 +132,12 @@ class BaseClient:
     # Setters
     ####################
 
-    def set_provider(self, node_uri: str) -> BaseClient:
+    def set_provider(self, node_uri: str) -> Self:
         self.node_uri = node_uri
         self.w3 = self.get_provider(node_uri)
         return self
 
-    def set_account(self, private_key: str) -> BaseClient:
+    def set_account(self, private_key: str) -> Self:
         self.private_key = private_key
         self.account = Account.from_key(private_key)
         self.user_address = self.account.address
@@ -145,7 +146,7 @@ class BaseClient:
 
     def set_contract(
         self, contract_address: Address, abi: dict[str, Any] = None
-    ) -> BaseClient:
+    ) -> Self:
         abi = abi or self.abi
         if not abi:
             raise Web3ClientException("ABI not set")
@@ -156,7 +157,7 @@ class BaseClient:
         self.functions = self.contract.functions
         return self
 
-    def set_middlewares(self, middlewares: List[Middleware]) -> BaseClient:
+    def set_middlewares(self, middlewares: List[Middleware]) -> Self:
         self.middlewares = middlewares
         for i, m in enumerate(middlewares):
             self.w3.middleware_onion.inject(m, layer=i)
@@ -808,10 +809,15 @@ class BaseClient:
 
     def clone(self, base: Type[BaseClient] = None) -> BaseClient:
         """
-        Return a clone of this client.
+        Return a clone of this client.  Useful to change
+        contract address or ABI without having to create
+        a new client from scratch.
+
+        You can specify a base class to use for the clone.
+        If you do, cast the result to please mypy.
         """
         if base is None:
-            base = self.__class__
+            base = type(self)
 
         return base(
             node_uri=self.node_uri,

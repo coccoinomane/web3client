@@ -3,7 +3,6 @@
 # To do
 
 - Compound borrow
-- BaseClient methods should return Self
 
 # Backlog
 
