@@ -54,37 +54,34 @@ class Erc20Client(BaseClient):
         """
         if not address:
             address = self.account.address
-        return self.contract.functions.balanceOf(
-            Web3.to_checksum_address(address)
-        ).call()
+        return self.functions.balanceOf(Web3.to_checksum_address(address)).call()
+
+    def total_supply(self) -> int:
+        """
+        Return the total supply of the token
+        """
+        return self.functions.totalSupply().call()
 
     @cached_property
     def name(self) -> str:
         """
         Return the name/label of the token
         """
-        return self.contract.functions.name().call()
+        return self.functions.name().call()
 
     @cached_property
     def symbol(self) -> str:
         """
         Return the symbol/ticker of the token
         """
-        return self.contract.functions.symbol().call()
-
-    @cached_property
-    def total_supply(self) -> int:
-        """
-        Return the total supply of the token
-        """
-        return self.contract.functions.totalSupply().call()
+        return self.functions.symbol().call()
 
     @cached_property
     def decimals(self) -> int:
         """
         Return the number of digits of the token
         """
-        return self.contract.functions.decimals().call()
+        return self.functions.decimals().call()
 
     ####################
     # Write
@@ -104,7 +101,7 @@ class Erc20Client(BaseClient):
         require approval.
         """
         return self.transact(
-            self.contract.functions.transfer(Web3.to_checksum_address(to), amount),
+            self.functions.transfer(Web3.to_checksum_address(to), amount),
             value_in_wei,
             nonce,
             gas_limit,
@@ -125,7 +122,7 @@ class Erc20Client(BaseClient):
         on behalf of the sender.
         """
         return self.transact(
-            self.contract.functions.approve(Web3.to_checksum_address(spender), amount),
+            self.functions.approve(Web3.to_checksum_address(spender), amount),
             value_in_wei,
             nonce,
             gas_limit,
