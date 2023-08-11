@@ -43,7 +43,7 @@ def deploy_cerc20(
     See constructor arguments here:
     https://etherscan.io/address/0x39AA39c021dfbaE8faC545936693aC917d5E7563#code
     """
-    return cerc20_container.deploy(
+    tst = cerc20_container.deploy(
         underlying_token_instance,
         comptroller_instance,
         interest_rate_model_instance,
@@ -54,6 +54,9 @@ def deploy_cerc20(
         accounts[0],
         sender=accounts[0],
     )
+    # List cTST on the comptroller
+    comptroller_instance._supportMarket(tst, sender=accounts[0])
+    return tst
 
 
 def deploy_cether(
@@ -70,7 +73,7 @@ def deploy_cether(
     there is no underlying token.  See constructor arguments here:
     https://etherscan.io/address/0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5#code
     """
-    return ceth_container.deploy(
+    ceth = ceth_container.deploy(
         comptroller_instance,
         interest_rate_model_instance,
         initial_exchange_rate_mantissa,
@@ -80,3 +83,6 @@ def deploy_cether(
         accounts[0],
         sender=accounts[0],
     )
+    # List cETH as a supported market
+    comptroller_instance._supportMarket(ceth, sender=accounts[0])
+    return ceth
