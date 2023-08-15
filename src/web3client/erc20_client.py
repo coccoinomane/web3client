@@ -3,7 +3,7 @@ from functools import cached_property
 
 from eth_typing import Address, HexStr
 from web3 import Web3
-from web3.types import Nonce, Wei
+from web3.types import Nonce
 
 from web3client.base_client import BaseClient
 
@@ -40,51 +40,49 @@ class Erc20Client(BaseClient):
 
     def balance(self, address: Address = None) -> Decimal:
         """
-        Return the amount held by the given address; if no address is
-        specified, return the amount held by the client's account
+        Return the amount of the ERC20 token held by the given
+        address; if no address is specified, return the amount
+        held by the client's account
         """
         balance_in_wei = self.balance_in_wei(address)
         return self.from_wei(balance_in_wei, self.decimals)
 
     def balance_in_wei(self, address: Address = None) -> int:
         """
-        Return the amount held by the given address, in wei; if no
-        address is specified, return the amount held by the client's
-        account
+        Return the amount of the ERC20 token held by the given address,
+        in wei; if no address is specified, return the amount held by
+        the client's account
         """
         if not address:
             address = self.account.address
-        return self.contract.functions.balanceOf(
-            Web3.to_checksum_address(address)
-        ).call()
+        return self.functions.balanceOf(Web3.to_checksum_address(address)).call()
+
+    def total_supply(self) -> int:
+        """
+        Return the total supply of the token
+        """
+        return self.functions.totalSupply().call()
 
     @cached_property
     def name(self) -> str:
         """
         Return the name/label of the token
         """
-        return self.contract.functions.name().call()
+        return self.functions.name().call()
 
     @cached_property
     def symbol(self) -> str:
         """
         Return the symbol/ticker of the token
         """
-        return self.contract.functions.symbol().call()
-
-    @cached_property
-    def total_supply(self) -> int:
-        """
-        Return the total supply of the token
-        """
-        return self.contract.functions.totalSupply().call()
+        return self.functions.symbol().call()
 
     @cached_property
     def decimals(self) -> int:
         """
         Return the number of digits of the token
         """
-        return self.contract.functions.decimals().call()
+        return self.functions.decimals().call()
 
     ####################
     # Write
@@ -94,7 +92,7 @@ class Erc20Client(BaseClient):
         self,
         to: Address,
         amount: int,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -104,7 +102,7 @@ class Erc20Client(BaseClient):
         require approval.
         """
         return self.transact(
-            self.contract.functions.transfer(Web3.to_checksum_address(to), amount),
+            self.functions.transfer(Web3.to_checksum_address(to), amount),
             value_in_wei,
             nonce,
             gas_limit,
@@ -115,7 +113,7 @@ class Erc20Client(BaseClient):
         self,
         spender: Address,
         amount: int,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -125,7 +123,7 @@ class Erc20Client(BaseClient):
         on behalf of the sender.
         """
         return self.transact(
-            self.contract.functions.approve(Web3.to_checksum_address(spender), amount),
+            self.functions.approve(Web3.to_checksum_address(spender), amount),
             value_in_wei,
             nonce,
             gas_limit,

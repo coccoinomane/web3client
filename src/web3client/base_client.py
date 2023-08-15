@@ -5,7 +5,7 @@ import json
 import time
 from os.path import dirname, isfile, realpath
 from pathlib import Path
-from typing import Any, Callable, List, Tuple, Union, cast
+from typing import Any, Callable, List, Tuple, Type, Union, cast
 
 import websockets
 from eth_account import Account
@@ -15,6 +15,7 @@ from eth_account.signers.local import LocalAccount
 from eth_typing import Address
 from eth_typing.encoding import HexStr
 from hexbytes import HexBytes
+from typing_extensions import Self
 from web3 import Web3
 from web3.contract.contract import Contract, ContractFunction, ContractFunctions
 from web3.exceptions import TransactionNotFound
@@ -131,12 +132,12 @@ class BaseClient:
     # Setters
     ####################
 
-    def set_provider(self, node_uri: str) -> BaseClient:
+    def set_provider(self, node_uri: str) -> Self:
         self.node_uri = node_uri
         self.w3 = self.get_provider(node_uri)
         return self
 
-    def set_account(self, private_key: str) -> BaseClient:
+    def set_account(self, private_key: str) -> Self:
         self.private_key = private_key
         self.account = Account.from_key(private_key)
         self.user_address = self.account.address
@@ -145,7 +146,7 @@ class BaseClient:
 
     def set_contract(
         self, contract_address: Address, abi: dict[str, Any] = None
-    ) -> BaseClient:
+    ) -> Self:
         abi = abi or self.abi
         if not abi:
             raise Web3ClientException("ABI not set")
@@ -156,7 +157,7 @@ class BaseClient:
         self.functions = self.contract.functions
         return self
 
-    def set_middlewares(self, middlewares: List[Middleware]) -> BaseClient:
+    def set_middlewares(self, middlewares: List[Middleware]) -> Self:
         self.middlewares = middlewares
         for i, m in enumerate(middlewares):
             self.w3.middleware_onion.inject(m, layer=i)
@@ -253,7 +254,7 @@ class BaseClient:
     def build_tx_with_value_in_wei(
         self,
         to: Address,
-        value_in_wei: Wei,
+        value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -269,7 +270,7 @@ class BaseClient:
         )
         extra_params: TxParams = {
             "to": to,
-            "value": value_in_wei,
+            "value": cast(Wei, value_in_wei),
             "gas": self.estimate_gas_for_transfer(to, value_in_wei),
         }
         return tx | extra_params
@@ -277,7 +278,7 @@ class BaseClient:
     def build_contract_tx(
         self,
         contract_function: ContractFunction,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -294,7 +295,7 @@ class BaseClient:
             max_priority_fee_in_gwei,
         )
         if value_in_wei:
-            base_tx["value"] = value_in_wei
+            base_tx["value"] = cast(Wei, value_in_wei)
         return contract_function.build_transaction(base_tx)
 
     ####################
@@ -341,7 +342,7 @@ class BaseClient:
     def send_eth_in_wei(
         self,
         to: Address,
-        value_in_wei: Wei,
+        value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -735,7 +736,7 @@ class BaseClient:
         """
         return self.w3.eth.get_block("pending")
 
-    def estimate_gas_for_transfer(self, to: Address, value_in_wei: Wei) -> int:
+    def estimate_gas_for_transfer(self, to: Address, value_in_wei: int) -> int:
         """
         Return the gas that would be required to send some ETH
         (expressed in Wei) to an address
@@ -744,7 +745,7 @@ class BaseClient:
             {
                 "from": self.user_address,
                 "to": to,
-                "value": value_in_wei,
+                "value": cast(Wei, value_in_wei),
             }
         )
 
@@ -783,7 +784,7 @@ class BaseClient:
     def transact(
         self,
         function: ContractFunction,
-        value_in_wei: Wei = None,
+        value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
         max_priority_fee_in_gwei: int = None,
@@ -805,6 +806,30 @@ class BaseClient:
     ####################
     # Utils
     ####################
+
+    def clone(self, base: Type[BaseClient] = None) -> BaseClient:
+        """
+        Return a clone of this client.  Useful to change
+        contract address or ABI without having to create
+        a new client from scratch.
+
+        You can specify a base class to use for the clone.
+        If you do, cast the result to please mypy.
+        """
+        if base is None:
+            base = type(self)
+
+        return base(
+            node_uri=self.node_uri,
+            chain_id=self.chain_id,
+            tx_type=self.tx_type,
+            private_key=self.private_key,
+            max_priority_fee_in_gwei=self.max_priority_fee_in_gwei,
+            upper_limit_for_base_fee_in_gwei=self.upper_limit_for_base_fee_in_gwei,
+            contract_address=self.contract_address,
+            abi=self.abi,
+            middlewares=self.middlewares,
+        )
 
     @staticmethod
     def get_contract(

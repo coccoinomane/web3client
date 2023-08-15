@@ -2,3 +2,4 @@ contracts_folder: tests/ape/contracts
 plugins:
 - name: solidity
 - name: anvil
+- name: etherscan

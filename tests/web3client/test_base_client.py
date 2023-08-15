@@ -21,3 +21,9 @@ def test_base_client_transfer(
     bob_balance = bob.balance
     alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert bob.balance == bob_balance + 10**18
+
+
+def test_base_client_clone(alice_base_client: BaseClient) -> None:
+    alice_base_client_clone = alice_base_client.clone()
+    assert alice_base_client_clone.node_uri == alice_base_client.node_uri
+    assert alice_base_client_clone.private_key == alice_base_client.private_key
