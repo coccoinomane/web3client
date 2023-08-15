@@ -176,6 +176,11 @@ def CompoundV2InterestRateModel() -> ape.contracts.ContractContainer:
 
 
 @pytest.fixture(scope="function")
+def CompoundV2FixedPriceOracle() -> ape.contracts.ContractContainer:
+    return ape.project.get_contract("FixedPriceOracle")
+
+
+@pytest.fixture(scope="function")
 def CompoundV2Erc20() -> ape.contracts.ContractContainer:
     return ape.project.get_contract("CErc20Immutable")
 
@@ -328,12 +333,23 @@ def TST6_1(
 
 
 @pytest.fixture(scope="function")
+def compound_v2_price_oracle(
+    accounts: ape.managers.accounts.AccountManager,
+    CompoundV2FixedPriceOracle: ape.contracts.ContractContainer,
+) -> ape.contracts.ContractInstance:
+    """The Compound V2 price oracle contract.  This is a simple
+    implementation that sets the price of each token to 1 ETH."""
+    return CompoundV2FixedPriceOracle.deploy(10**18, sender=accounts[0])
+
+
+@pytest.fixture(scope="function")
 def compound_v2_comptroller(
     accounts: ape.managers.accounts.AccountManager,
     CompoundV2Comptroller: ape.contracts.ContractContainer,
+    compound_v2_price_oracle: ape.contracts.ContractInstance,
 ) -> ape.contracts.ContractInstance:
     """The Compound V2 comptroller contract."""
-    return deploy_comptroller(accounts, CompoundV2Comptroller)
+    return deploy_comptroller(accounts, CompoundV2Comptroller, compound_v2_price_oracle)
 
 
 @pytest.fixture(scope="function")

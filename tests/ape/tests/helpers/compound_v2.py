@@ -4,6 +4,7 @@ import ape
 def deploy_comptroller(
     accounts: ape.managers.accounts.AccountManager,
     comptroller_container: ape.contracts.ContractContainer,
+    price_oracle_instance: ape.contracts.ContractInstance,
 ) -> ape.contracts.ContractInstance:
     """Deploy the Compound comptroller (https://docs.compound.finance/v2/comptroller/).
     On Ethereum:
@@ -11,7 +12,9 @@ def deploy_comptroller(
     - proxy: https://etherscan.io/address/0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B#code
     To call Comptroller functions, use the Comptroller ABI on the Unitroller address.
     """
-    return comptroller_container.deploy(sender=accounts[0])
+    comptroller = comptroller_container.deploy(sender=accounts[0])
+    comptroller._setPriceOracle(price_oracle_instance, sender=accounts[0])
+    return comptroller
 
 
 def deploy_interest_rate_model(
@@ -38,12 +41,13 @@ def deploy_cerc20(
     name: str = "CompoundTestToken",
     symbol: str = "cTST",
     decimals: int = 8,
+    collateral_factor: int = 9 * 10**17,
 ) -> ape.contracts.ContractInstance:
     """Deploy a Compound pool with an underlying test token.
     See constructor arguments here:
     https://etherscan.io/address/0x39AA39c021dfbaE8faC545936693aC917d5E7563#code
     """
-    tst = cerc20_container.deploy(
+    cerc20 = cerc20_container.deploy(
         underlying_token_instance,
         comptroller_instance,
         interest_rate_model_instance,
@@ -55,8 +59,12 @@ def deploy_cerc20(
         sender=accounts[0],
     )
     # List cTST on the comptroller
-    comptroller_instance._supportMarket(tst, sender=accounts[0])
-    return tst
+    comptroller_instance._supportMarket(cerc20, sender=accounts[0])
+    # Set collateral factor
+    comptroller_instance._setCollateralFactor(
+        cerc20, collateral_factor, sender=accounts[0]
+    )
+    return cerc20
 
 
 def deploy_cether(
@@ -68,6 +76,7 @@ def deploy_cether(
     name: str = "CompoundETH",
     symbol: str = "cETH",
     decimals: int = 8,
+    collateral_factor: int = 9 * 10**17,
 ) -> ape.contracts.ContractInstance:
     """Deploy a Compound pool with ETH.  The difference is that
     there is no underlying token.  See constructor arguments here:
@@ -85,4 +94,8 @@ def deploy_cether(
     )
     # List cETH as a supported market
     comptroller_instance._supportMarket(ceth, sender=accounts[0])
+    # Set collateral factor
+    comptroller_instance._setCollateralFactor(
+        ceth, collateral_factor, sender=accounts[0]
+    )
     return ceth

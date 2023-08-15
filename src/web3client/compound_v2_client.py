@@ -1,5 +1,7 @@
 from typing import List, cast
 
+from eth_typing import HexStr
+
 from web3client.base_client import BaseClient
 from web3client.erc20_client import Erc20Client
 from web3client.exceptions import Web3ClientException
@@ -29,18 +31,22 @@ class CompoundV2CErc20Client(Erc20Client):
     # Write
     ####################
 
-    def approve_and_supply(self, amount: int) -> None:
+    def approve_and_supply(self, amount: int) -> HexStr:
         """Supply tokens to the Compound V2 pool, first approving"""
         underlying_client = cast(
             Erc20Client,
             self.clone(Erc20Client).set_contract(self.functions.underlying().call()),
         )
         self.get_tx_receipt(underlying_client.approve(self.contract_address, amount))
-        self.transact(self.functions.mint(amount))
+        return self.transact(self.functions.mint(amount))
 
-    def supply(self, amount: int) -> None:
+    def supply(self, amount: int) -> HexStr:
         """Supply tokens to the Compound V2 pool"""
-        self.transact(self.functions.mint(amount))
+        return self.transact(self.functions.mint(amount))
+
+    def borrow(self, amount: int) -> HexStr:
+        """Borrow tokens to the Compound V2 pool"""
+        return self.transact(self.functions.borrow(amount))
 
     ####################
     # Utils
@@ -50,7 +56,7 @@ class CompoundV2CErc20Client(Erc20Client):
         """Get the underlying token client"""
         return cast(
             Erc20Client,
-            self.clone().set_contract(self.functions.underlying().call()),
+            self.clone(Erc20Client).set_contract(self.functions.underlying().call()),
         )
 
 
@@ -71,9 +77,9 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
     # Write
     ####################
 
-    def supply(self, amount: int) -> None:
+    def supply(self, amount: int) -> HexStr:
         """Supply ETH to the Compound V2 pool"""
-        self.transact(self.functions.mint(), value_in_wei=amount)
+        return self.transact(self.functions.mint(), value_in_wei=amount)
 
 
 class CompoundV2ComptrollerClient(BaseClient):
@@ -113,14 +119,14 @@ class CompoundV2ComptrollerClient(BaseClient):
     # Write
     ####################
 
-    def enter_market(self, c_token_address: str) -> None:
+    def enter_market(self, c_token_address: str) -> HexStr:
         """Enable collateral for a market"""
-        self.transact(self.functions.enterMarkets([c_token_address]))
+        return self.transact(self.functions.enterMarkets([c_token_address]))
 
-    def exit_market(self, c_token_address: str) -> None:
+    def exit_market(self, c_token_address: str) -> HexStr:
         """Disable collateral for a market"""
-        self.transact(self.functions.exitMarket(c_token_address))
+        return self.transact(self.functions.exitMarket(c_token_address))
 
-    def list_market(self, c_token_address: str) -> None:
+    def list_market(self, c_token_address: str) -> HexStr:
         """Enable a market (admin function)"""
-        self.transact(self.functions._supportMarket(c_token_address))
+        return self.transact(self.functions._supportMarket(c_token_address))

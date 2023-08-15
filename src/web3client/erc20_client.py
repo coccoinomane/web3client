@@ -40,17 +40,18 @@ class Erc20Client(BaseClient):
 
     def balance(self, address: Address = None) -> Decimal:
         """
-        Return the amount held by the given address; if no address is
-        specified, return the amount held by the client's account
+        Return the amount of the ERC20 token held by the given
+        address; if no address is specified, return the amount
+        held by the client's account
         """
         balance_in_wei = self.balance_in_wei(address)
         return self.from_wei(balance_in_wei, self.decimals)
 
     def balance_in_wei(self, address: Address = None) -> int:
         """
-        Return the amount held by the given address, in wei; if no
-        address is specified, return the amount held by the client's
-        account
+        Return the amount of the ERC20 token held by the given address,
+        in wei; if no address is specified, return the amount held by
+        the client's account
         """
         if not address:
             address = self.account.address
