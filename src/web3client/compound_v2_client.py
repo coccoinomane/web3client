@@ -1,6 +1,6 @@
 from typing import List, cast
 
-from eth_typing import HexStr
+from eth_typing import Address, HexStr
 
 from web3client.base_client import BaseClient
 from web3client.erc20_client import Erc20Client
@@ -32,7 +32,7 @@ class CompoundV2CErc20Client(Erc20Client):
     ####################
 
     def approve_and_supply(self, amount: int) -> HexStr:
-        """Supply tokens to the Compound V2 pool, first approving"""
+        """Supply tokens to the Compound V2 market, first approving"""
         underlying_client = cast(
             Erc20Client,
             self.clone(Erc20Client).set_contract(self.functions.underlying().call()),
@@ -41,12 +41,16 @@ class CompoundV2CErc20Client(Erc20Client):
         return self.transact(self.functions.mint(amount))
 
     def supply(self, amount: int) -> HexStr:
-        """Supply tokens to the Compound V2 pool"""
+        """Supply tokens to the Compound V2 market"""
         return self.transact(self.functions.mint(amount))
 
     def borrow(self, amount: int) -> HexStr:
-        """Borrow tokens to the Compound V2 pool"""
+        """Borrow tokens to the Compound V2 market"""
         return self.transact(self.functions.borrow(amount))
+
+    def withdraw(self, amount: int) -> HexStr:
+        """Withdraw (redeem) tokens from the Compound V2 market"""
+        return self.transact(self.functions.redeemUnderlying(amount))
 
     ####################
     # Utils
@@ -56,7 +60,7 @@ class CompoundV2CErc20Client(Erc20Client):
         """Get the underlying token client"""
         return cast(
             Erc20Client,
-            self.clone(Erc20Client).set_contract(self.functions.underlying().call()),
+            self.clone(Erc20Client).set_contract(cast(Address, self.underlying())),
         )
 
 
@@ -77,8 +81,13 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
     # Write
     ####################
 
+    def approve_and_supply(self, amount: int) -> HexStr:
+        """Approving does not make sense for ETH, so just supply
+        ETH to the Compound V2 market"""
+        return self.supply(amount)
+
     def supply(self, amount: int) -> HexStr:
-        """Supply ETH to the Compound V2 pool"""
+        """Supply ETH to the Compound V2 market"""
         return self.transact(self.functions.mint(), value_in_wei=amount)
 
 

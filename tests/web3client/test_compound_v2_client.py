@@ -41,7 +41,7 @@ def test_compound_v2_ceth_supply(
 
 
 @pytest.mark.local
-def test_compound_v2_ctst_supply_and_borrow(
+def test_compound_v2_ctst_borrow(
     alice_compound_v2_ctst_client: CompoundV2CErc20Client,
     alice_compound_v2_comptroller_client: CompoundV2ComptrollerClient,
 ) -> None:
@@ -63,7 +63,7 @@ def test_compound_v2_ctst_supply_and_borrow(
 
 
 @pytest.mark.local
-def test_compound_v2_ceth_supply_and_borrow(
+def test_compound_v2_ceth_borrow(
     alice_compound_v2_ceth_client: CompoundV2CEtherClient,
     alice_compound_v2_comptroller_client: CompoundV2ComptrollerClient,
 ) -> None:
@@ -89,4 +89,48 @@ def test_compound_v2_ceth_supply_and_borrow(
         - rcpt1["gasUsed"] * rcpt1["effectiveGasPrice"]
         - rcpt2["gasUsed"] * rcpt2["effectiveGasPrice"]
         - rcpt3["gasUsed"] * rcpt3["effectiveGasPrice"]
+    )
+
+
+@pytest.mark.local
+def test_compound_v2_ctst_withdraw(
+    alice_compound_v2_ctst_client: CompoundV2CErc20Client,
+) -> None:
+    client = alice_compound_v2_ctst_client
+    alice_balance = client.get_underlying_client().balance_in_wei()
+    # Supply
+    supply_amount = 3 * 10**18
+    client.approve_and_supply(supply_amount)
+    # Withdraw half
+    withdraw_amount = supply_amount // 2
+    client.withdraw(withdraw_amount)
+    # Check balance
+    assert (
+        client.get_underlying_client().balance_in_wei()
+        == alice_balance + withdraw_amount - supply_amount
+    )
+
+
+@pytest.mark.local
+def test_compound_v2_ceth_withdraw(
+    alice_compound_v2_ceth_client: CompoundV2CErc20Client,
+) -> None:
+    client = alice_compound_v2_ceth_client
+    alice_balance = client.get_balance_in_wei()
+    # Supply
+    supply_amount = 3 * 10**18
+    tx1 = client.supply(supply_amount)
+    rcpt1 = client.get_tx_receipt(tx1)
+    # Withdraw half
+    withdraw_amount = supply_amount // 2
+    tx2 = client.withdraw(withdraw_amount)
+    rcpt2 = client.get_tx_receipt(tx2)
+    # Check balance
+    assert (
+        client.get_balance_in_wei()
+        == alice_balance
+        + withdraw_amount
+        - supply_amount
+        - rcpt1["gasUsed"] * rcpt1["effectiveGasPrice"]
+        - rcpt2["gasUsed"] * rcpt2["effectiveGasPrice"]
     )
