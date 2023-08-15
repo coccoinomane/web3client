@@ -25,6 +25,7 @@ def test_compound_v2_ctst_supply(
     alice_balance = client.get_underlying_client().balance_in_wei()
     amount = 3 * 10**18
     client.approve_and_supply(amount)
+    assert client.supplied() == amount
     assert client.get_underlying_client().balance_in_wei() == alice_balance - amount
     assert client.total_supply() * client.exchange_rate_stored() == amount * 10**18
 
@@ -37,6 +38,7 @@ def test_compound_v2_ceth_supply(
     exchange_rate = client.exchange_rate_stored()
     amount = 10**18
     client.supply(amount)
+    assert client.supplied() == amount
     assert client.total_supply() * exchange_rate == amount * 10**18
 
 
@@ -56,6 +58,7 @@ def test_compound_v2_ctst_borrow(
     borrow_amount = supply_amount // 3
     client.borrow(borrow_amount)
     # Check balance
+    assert client.borrowed() == borrow_amount
     assert (
         client.get_underlying_client().balance_in_wei()
         == alice_balance + borrow_amount - supply_amount
@@ -81,6 +84,7 @@ def test_compound_v2_ceth_borrow(
     tx3 = client.borrow(borrow_amount)
     rcpt3 = client.get_tx_receipt(tx3)
     # Check balance
+    assert client.borrowed() == borrow_amount
     assert (
         client.get_balance_in_wei()
         == alice_balance
@@ -134,3 +138,53 @@ def test_compound_v2_ceth_withdraw(
         - rcpt1["gasUsed"] * rcpt1["effectiveGasPrice"]
         - rcpt2["gasUsed"] * rcpt2["effectiveGasPrice"]
     )
+
+
+@pytest.mark.local
+def test_compound_v2_ctst_repay(
+    alice_compound_v2_ctst_client: CompoundV2CErc20Client,
+    alice_compound_v2_comptroller_client: CompoundV2ComptrollerClient,
+) -> None:
+    client = alice_compound_v2_ctst_client
+    # Supply
+    supply_amount = 3 * 10**18
+    client.approve_and_supply(supply_amount)
+    # Borrow
+    alice_compound_v2_comptroller_client.enter_market(client.contract_address)
+    borrow_amount = supply_amount // 3
+    client.borrow(borrow_amount)
+    # Repay a small amount
+    repay_amount = borrow_amount // 10
+    client.approve_and_repay(repay_amount)
+    # Make sure that the amount borrowed has decreased
+    # The comparison is approximate because of the interest
+    tolerance = 1e-4
+    assert abs(borrow_amount - client.borrowed()) / repay_amount - 1 < tolerance
+    # Repay the remaining amount
+    client.approve_and_repay_all()
+    assert client.borrowed() < tolerance * borrow_amount
+
+
+@pytest.mark.local
+def test_compound_v2_ceth_repay(
+    alice_compound_v2_ceth_client: CompoundV2CErc20Client,
+    alice_compound_v2_comptroller_client: CompoundV2ComptrollerClient,
+) -> None:
+    client = alice_compound_v2_ceth_client
+    # Supply
+    supply_amount = 3 * 10**18
+    client.supply(supply_amount)
+    # Borrow
+    alice_compound_v2_comptroller_client.enter_market(client.contract_address)
+    borrow_amount = supply_amount // 3
+    client.borrow(borrow_amount)
+    # Repay a small amount
+    repay_amount = borrow_amount // 10
+    client.repay(repay_amount)
+    # Make sure that the amount borrowed has decreased
+    # The comparison is approximate because of the interest
+    tolerance = 1e-4
+    assert abs(borrow_amount - client.borrowed()) / repay_amount - 1 < tolerance
+    # Repay the remaining amount
+    client.repay_all()
+    assert client.borrowed() < tolerance * borrow_amount

@@ -4,10 +4,10 @@ Batteries-included client to interact with blockchains and smart contracts; used
 
 - Easily create a client to interact with EVM-compatible chains
 - Interact with the most popular chains: Ethereum, Binance, Avalanche, Arbitrum One, zkSync Era, and more to come!
+- Includes a client for Compound V2 operations, and its clones
 - Subscribe to pending transactions in the mempool and new blocks.
 - Save gas by setting an upper limit on the base fee.
 - Need more flexibility? Use directly the underlying web3.py client.
-- Perform ERC20 operations, using the token name (e.g. USDC) instead of address.
 
 
 # Install

@@ -1,4 +1,4 @@
-from typing import List, cast
+from typing import List, Union, cast
 
 from eth_typing import Address, HexStr
 
@@ -27,22 +27,34 @@ class CompoundV2CErc20Client(Erc20Client):
         """Get the stored exchange rate from cToken to underlying"""
         return self.functions.exchangeRateStored().call()
 
+    def borrowed(self, address: Union[str, Address] = None) -> int:
+        """Get the amount borrowed by the given account;
+        will default to the current authenticated account"""
+        if not address:
+            address = self.user_address
+        return self.functions.borrowBalanceCurrent(cast(Address, address)).call()
+
+    def supplied(self, address: Union[str, Address] = None) -> int:
+        """Get the amount supplied to the market by the given
+        account; will default to the current authenticated account"""
+        if not address:
+            address = self.user_address
+        return self.functions.balanceOfUnderlying(cast(Address, address)).call()
+
     ####################
     # Write
     ####################
 
-    def approve_and_supply(self, amount: int) -> HexStr:
-        """Supply tokens to the Compound V2 market, first approving"""
-        underlying_client = cast(
-            Erc20Client,
-            self.clone(Erc20Client).set_contract(self.functions.underlying().call()),
-        )
-        self.get_tx_receipt(underlying_client.approve(self.contract_address, amount))
-        return self.transact(self.functions.mint(amount))
-
     def supply(self, amount: int) -> HexStr:
         """Supply tokens to the Compound V2 market"""
         return self.transact(self.functions.mint(amount))
+
+    def approve_and_supply(self, amount: int) -> HexStr:
+        """Supply tokens to the Compound V2 market, first approving"""
+        self.get_tx_receipt(
+            self.get_underlying_client().approve(self.contract_address, amount)
+        )
+        return self.supply(amount)
 
     def borrow(self, amount: int) -> HexStr:
         """Borrow tokens to the Compound V2 market"""
@@ -51,6 +63,29 @@ class CompoundV2CErc20Client(Erc20Client):
     def withdraw(self, amount: int) -> HexStr:
         """Withdraw (redeem) tokens from the Compound V2 market"""
         return self.transact(self.functions.redeemUnderlying(amount))
+
+    def repay(self, amount: int) -> HexStr:
+        """Repay tokens to the Compound V2 market, to reduce the
+        amount borrowed"""
+        return self.transact(self.functions.repayBorrow(amount))
+
+    def approve_and_repay(self, amount: int) -> HexStr:
+        """Repay tokens to the Compound V2 market, to reduce the
+        amount borrowed, first approving"""
+        self.get_tx_receipt(
+            self.get_underlying_client().approve(self.contract_address, amount)
+        )
+        return self.repay(amount)
+
+    def repay_all(self) -> HexStr:
+        """Repay all tokens to the Compound V2 market, to reduce the
+        amount borrowed to zero"""
+        return self.repay(self.borrowed())
+
+    def approve_and_repay_all(self) -> HexStr:
+        """Repay all tokens to the Compound V2 market, to reduce the
+        amount borrowed to zero, first approving"""
+        return self.approve_and_repay(self.borrowed())
 
     ####################
     # Utils
@@ -86,9 +121,24 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
         ETH to the Compound V2 market"""
         return self.supply(amount)
 
+    def approve_and_repay(self, amount: int) -> HexStr:
+        """Approving does not make sense for ETH, so just repay
+        ETH to the Compound V2 market"""
+        return self.repay(amount)
+
+    def approve_and_repay_all(self) -> HexStr:
+        """Approving does not make sense for ETH, so just repay
+        ETH to the Compound V2 market"""
+        return self.repay_all()
+
     def supply(self, amount: int) -> HexStr:
         """Supply ETH to the Compound V2 market"""
         return self.transact(self.functions.mint(), value_in_wei=amount)
+
+    def repay(self, amount: int) -> HexStr:
+        """Repay ETH to the Compound V2 market, to reduce the
+        amount borrowed"""
+        return self.transact(self.functions.repayBorrow(), value_in_wei=amount)
 
 
 class CompoundV2ComptrollerClient(BaseClient):
