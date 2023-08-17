@@ -113,6 +113,9 @@ def test_compound_v2_ctst_withdraw(
         client.get_underlying_client().balance_in_wei()
         == alice_balance + withdraw_amount - supply_amount
     )
+    # Witdhraw the rest
+    client.withdraw_all()
+    assert client.get_underlying_client().balance_in_wei() == alice_balance
 
 
 @pytest.mark.local
@@ -137,6 +140,16 @@ def test_compound_v2_ceth_withdraw(
         - supply_amount
         - rcpt1["gasUsed"] * rcpt1["effectiveGasPrice"]
         - rcpt2["gasUsed"] * rcpt2["effectiveGasPrice"]
+    )
+    # Witdhraw the rest
+    tx3 = client.withdraw_all()
+    rcpt3 = client.get_tx_receipt(tx3)
+    assert (
+        client.get_balance_in_wei()
+        == alice_balance
+        - rcpt1["gasUsed"] * rcpt1["effectiveGasPrice"]
+        - rcpt2["gasUsed"] * rcpt2["effectiveGasPrice"]
+        - rcpt3["gasUsed"] * rcpt3["effectiveGasPrice"]
     )
 
 

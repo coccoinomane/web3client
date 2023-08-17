@@ -41,6 +41,13 @@ class CompoundV2CErc20Client(Erc20Client):
             address = self.user_address
         return self.functions.balanceOfUnderlying(cast(Address, address)).call()
 
+    def supplied_in_ctokens(self, address: Union[str, Address] = None) -> int:
+        """Get the amount of cTokens owned by the given account;
+        will default to the current authenticated account"""
+        if not address:
+            address = self.user_address
+        return self.functions.balanceOf(cast(Address, address)).call()
+
     ####################
     # Write
     ####################
@@ -61,8 +68,19 @@ class CompoundV2CErc20Client(Erc20Client):
         return self.transact(self.functions.borrow(amount))
 
     def withdraw(self, amount: int) -> HexStr:
-        """Withdraw (redeem) tokens from the Compound V2 market"""
+        """Withdraw (redeem) tokens from the Compound V2 market
+        IMPORTANT: Never withdraw too much, lest you risk liquidation"""
         return self.transact(self.functions.redeemUnderlying(amount))
+
+    def withdraw_in_ctokens(self, amount: int) -> HexStr:
+        """Return (redeem) cTokens to the Compound V2 market
+        IMPORTANT: Never withdraw too much, lest you risk liquidation"""
+        return self.transact(self.functions.redeem(amount))
+
+    def withdraw_all(self) -> HexStr:
+        """Withdraw (redeem) all tokens from the Compound V2 market.
+        IMPORTANT: Never withdraw too much, lest you risk liquidation"""
+        return self.withdraw_in_ctokens(self.supplied_in_ctokens())
 
     def repay(self, amount: int) -> HexStr:
         """Repay tokens to the Compound V2 market, to reduce the
