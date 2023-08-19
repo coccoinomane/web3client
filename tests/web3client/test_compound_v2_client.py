@@ -27,7 +27,9 @@ def test_compound_v2_ctst_supply(
     client.approve_and_supply(amount)
     assert client.supplied() == amount
     assert client.get_underlying_client().balance_in_wei() == alice_balance - amount
-    assert client.total_supply() * client.exchange_rate_stored() == amount * 10**18
+    assert client.total_supply() * client.exchange_rate() == amount * 10**18
+    assert client.liquidity() == amount
+    assert client.solvency() == float("inf")
 
 
 @pytest.mark.local
@@ -35,11 +37,13 @@ def test_compound_v2_ceth_supply(
     alice_compound_v2_ceth_client: CompoundV2CEtherClient,
 ) -> None:
     client = alice_compound_v2_ceth_client
-    exchange_rate = client.exchange_rate_stored()
+    exchange_rate = client.exchange_rate()
     amount = 10**18
     client.supply(amount)
     assert client.supplied() == amount
     assert client.total_supply() * exchange_rate == amount * 10**18
+    assert client.liquidity() == amount
+    assert client.solvency() == float("inf")
 
 
 @pytest.mark.local
@@ -59,6 +63,8 @@ def test_compound_v2_ctst_borrow(
     client.borrow(borrow_amount)
     # Check balance
     assert client.borrowed() == borrow_amount
+    assert client.total_borrowed() == borrow_amount
+    assert client.liquidity() == supply_amount - borrow_amount
     assert (
         client.get_underlying_client().balance_in_wei()
         == alice_balance + borrow_amount - supply_amount
@@ -85,6 +91,8 @@ def test_compound_v2_ceth_borrow(
     rcpt3 = client.get_tx_receipt(tx3)
     # Check balance
     assert client.borrowed() == borrow_amount
+    assert client.total_borrowed() == borrow_amount
+    assert client.liquidity() == supply_amount - borrow_amount
     assert (
         client.get_balance_in_wei()
         == alice_balance
@@ -116,6 +124,8 @@ def test_compound_v2_ctst_withdraw(
     # Witdhraw the rest
     client.withdraw_all()
     assert client.get_underlying_client().balance_in_wei() == alice_balance
+    assert client.liquidity() == 0
+    assert client.solvency() == 0
 
 
 @pytest.mark.local
@@ -151,6 +161,8 @@ def test_compound_v2_ceth_withdraw(
         - rcpt2["gasUsed"] * rcpt2["effectiveGasPrice"]
         - rcpt3["gasUsed"] * rcpt3["effectiveGasPrice"]
     )
+    assert client.liquidity() == 0
+    assert client.solvency() == 0
 
 
 @pytest.mark.local
@@ -173,9 +185,18 @@ def test_compound_v2_ctst_repay(
     # The comparison is approximate because of the interest
     tolerance = 1e-4
     assert abs(borrow_amount - client.borrowed()) / repay_amount - 1 < tolerance
+    assert client.liquidity() == supply_amount - borrow_amount + repay_amount
+    assert (
+        abs(client.solvency() - client.liquidity() / client.total_borrowed())
+        < tolerance
+    )
     # Repay the remaining amount
     client.approve_and_repay_all()
     assert client.borrowed() < tolerance * borrow_amount
+    assert (
+        abs(client.liquidity() - supply_amount)
+        < tolerance * 10 ** client.get_underlying_client().decimals
+    )
 
 
 @pytest.mark.local
@@ -198,6 +219,12 @@ def test_compound_v2_ceth_repay(
     # The comparison is approximate because of the interest
     tolerance = 1e-4
     assert abs(borrow_amount - client.borrowed()) / repay_amount - 1 < tolerance
+    assert client.liquidity() == supply_amount - borrow_amount + repay_amount
+    assert (
+        abs(client.solvency() - client.liquidity() / client.total_borrowed())
+        < tolerance
+    )
     # Repay the remaining amount
     client.repay_all()
     assert client.borrowed() < tolerance * borrow_amount
+    assert abs(client.liquidity() - supply_amount) < tolerance * 10**18

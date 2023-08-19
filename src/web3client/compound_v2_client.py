@@ -23,9 +23,27 @@ class CompoundV2CErc20Client(Erc20Client):
         """Get the address of the underlying asset"""
         return self.functions.underlying().call()
 
-    def exchange_rate_stored(self) -> int:
+    def exchange_rate(self) -> int:
         """Get the stored exchange rate from cToken to underlying"""
         return self.functions.exchangeRateStored().call()
+
+    def solvency(self) -> float:
+        """Get the ratio between the market liquidity and its total
+        borrows.  If this number is above 1, the market is solvent,
+        and all borrowers could in principle withdraw at the same time."""
+        liquidity = self.liquidity()
+        if liquidity == 0:
+            return 0
+        total_borrowed = self.total_borrowed()
+        if total_borrowed == 0:
+            return float("inf")
+        return liquidity / total_borrowed
+
+    def liquidity(self) -> int:
+        """Get the amount of underlying tokens in the market.  This should
+        be equal to the supplied collateral minus the total borrows, but
+        it can be smaller if the market has been drained by an exploit"""
+        return self.functions.getCash().call()
 
     def borrowed(self, address: Union[str, Address] = None) -> int:
         """Get the amount borrowed by the given account;
@@ -34,12 +52,26 @@ class CompoundV2CErc20Client(Erc20Client):
             address = self.user_address
         return self.functions.borrowBalanceCurrent(cast(Address, address)).call()
 
+    def total_borrowed(self) -> int:
+        """Get the total amount of underlying loaned out by
+        the market"""
+        return self.functions.totalBorrows().call()
+
     def supplied(self, address: Union[str, Address] = None) -> int:
         """Get the amount supplied to the market by the given
         account; will default to the current authenticated account"""
         if not address:
             address = self.user_address
         return self.functions.balanceOfUnderlying(cast(Address, address)).call()
+
+    def total_supplied(self) -> int:
+        """Get the total amount of underlying tokens supplied to the market.
+        This is different than the available tokens (i.e. cash), which are
+        returned by self.liquidity()
+
+        NOT TESTED YET!"""
+        c_tokens_supply = self.total_supply()
+        return c_tokens_supply * self.exchange_rate() // 10**18
 
     def supplied_in_ctokens(self, address: Union[str, Address] = None) -> int:
         """Get the amount of cTokens owned by the given account;
