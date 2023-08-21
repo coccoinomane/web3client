@@ -1,5 +1,6 @@
 import pytest
 
+import ape
 from web3client.compound_v2_client import (
     CompoundV2CErc20Client,
     CompoundV2CEtherClient,
@@ -15,6 +16,25 @@ def test_compound_v2_ctst_read(compound_v2_ctst_client: CompoundV2CErc20Client) 
 @pytest.mark.local
 def test_compound_v2_ceth_read(compound_v2_ceth_client: CompoundV2CErc20Client) -> None:
     assert compound_v2_ceth_client.symbol == "cETH"
+
+
+@pytest.mark.local
+def test_compound_v2_ctst_underlying_balance(
+    alice_compound_v2_ctst_client: CompoundV2CErc20Client,
+    alice: ape.api.AccountAPI,
+    TST: ape.contracts.ContractInstance,
+) -> None:
+    client = alice_compound_v2_ctst_client
+    assert TST.balanceOf(alice) == client.underlying_balance()
+
+
+@pytest.mark.local
+def test_compound_v2_ceth_underlying_balance(
+    alice_compound_v2_ceth_client: CompoundV2CErc20Client,
+    alice: ape.api.AccountAPI,
+) -> None:
+    client = alice_compound_v2_ceth_client
+    assert alice.balance == client.underlying_balance()
 
 
 @pytest.mark.local

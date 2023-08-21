@@ -23,6 +23,11 @@ class CompoundV2CErc20Client(Erc20Client):
         """Get the address of the underlying asset"""
         return self.functions.underlying().call()
 
+    def underlying_balance(self, address: Union[str, Address] = None) -> int:
+        """Get the balance of the given address in the underlying
+        token; will default to the current authenticated account"""
+        return self.get_underlying_client().balance_in_wei(cast(Address, address))
+
     def exchange_rate(self) -> int:
         """Get the stored exchange rate from cToken to underlying"""
         return self.functions.exchangeRateStored().call()
@@ -141,6 +146,11 @@ class CompoundV2CErc20Client(Erc20Client):
     # Utils
     ####################
 
+    def is_eth(self) -> bool:
+        """Whether this market is for the chain's native coin
+        (True) or for an ERC20 token (False)"""
+        return False
+
     def get_underlying_client(self) -> Erc20Client:
         """Get the underlying token client"""
         return cast(
@@ -161,6 +171,11 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
 
     def underlying(self) -> str:
         raise Web3ClientException("CEther market does not have an underlying token")
+
+    def underlying_balance(self, address: Union[str, Address] = None) -> int:
+        """Get the balance of the given address in ETH; will default
+        to the current authenticated account"""
+        return self.get_balance_in_wei(cast(Address, address))
 
     ####################
     # Write
@@ -189,6 +204,18 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
         """Repay ETH to the Compound V2 market, to reduce the
         amount borrowed"""
         return self.transact(self.functions.repayBorrow(), value_in_wei=amount)
+
+    ####################
+    # Utils
+    ####################
+
+    def is_eth(self) -> bool:
+        """Whether this market is for the chain's native coin
+        (True) or for an ERC20 token (False)"""
+        return True
+
+    def get_underlying_client(self) -> Erc20Client:
+        raise Web3ClientException("CEther market does not have an underlying token")
 
 
 class CompoundV2ComptrollerClient(BaseClient):
