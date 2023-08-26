@@ -153,48 +153,16 @@ def erc20_abi(erc20_abi_string: str) -> Iterator[ABI]:
     yield json.loads(erc20_abi_string)
 
 
-#   ____                   _             _
-#  / ___|   ___    _ __   | |_    __ _  (_)  _ __     ___   _ __   ___
-# | |      / _ \  | '_ \  | __|  / _` | | | | '_ \   / _ \ | '__| / __|
-# | |___  | (_) | | | | | | |_  | (_| | | | | | | | |  __/ | |    \__ \
-#  \____|  \___/  |_| |_|  \__|  \__,_| |_| |_| |_|  \___| |_|    |___/
-
-
-@pytest.fixture(scope="function")
-def Token() -> ape.contracts.ContractContainer:
-    return ape.project.get_contract("Token")
-
-
-@pytest.fixture(scope="function")
-def CompoundV2Comptroller() -> ape.contracts.ContractContainer:
-    return ape.project.get_contract("Comptroller")
-
-
-@pytest.fixture(scope="function")
-def CompoundV2InterestRateModel() -> ape.contracts.ContractContainer:
-    return ape.project.get_contract("WhitePaperInterestRateModel")
-
-
-@pytest.fixture(scope="function")
-def CompoundV2FixedPriceOracle() -> ape.contracts.ContractContainer:
-    return ape.project.get_contract("FixedPriceOracle")
-
-
-@pytest.fixture(scope="function")
-def CompoundV2Erc20() -> ape.contracts.ContractContainer:
-    return ape.project.get_contract("CErc20Immutable")
-
-
-@pytest.fixture(scope="function")
-def CompoundV2Ether() -> ape.contracts.ContractContainer:
-    return ape.project.get_contract("CEther")
-
-
 #  _____           _
 # |_   _|   ___   | | __   ___   _ __    ___
 #   | |    / _ \  | |/ /  / _ \ | '_ \  / __|
 #   | |   | (_) | |   <  |  __/ | | | | \__ \
 #   |_|    \___/  |_|\_\  \___| |_| |_| |___/
+
+
+@pytest.fixture(scope="function")
+def Token() -> ape.contracts.ContractContainer:
+    return ape.project.get_contract("Token")
 
 
 @pytest.fixture(scope="function")
@@ -330,6 +298,31 @@ def TST6_1(
 #  | |___  | (_) | | | | | | | | |_) | | (_) | | |_| | | | | | | (_| |
 #   \____|  \___/  |_| |_| |_| | .__/   \___/   \__,_| |_| |_|  \__,_|
 #                              |_|
+
+
+@pytest.fixture(scope="function")
+def CompoundV2Comptroller() -> ape.contracts.ContractContainer:
+    return ape.project.get_contract("Comptroller")
+
+
+@pytest.fixture(scope="function")
+def CompoundV2InterestRateModel() -> ape.contracts.ContractContainer:
+    return ape.project.get_contract("WhitePaperInterestRateModel")
+
+
+@pytest.fixture(scope="function")
+def CompoundV2FixedPriceOracle() -> ape.contracts.ContractContainer:
+    return ape.project.get_contract("FixedPriceOracle")
+
+
+@pytest.fixture(scope="function")
+def CompoundV2Erc20() -> ape.contracts.ContractContainer:
+    return ape.project.get_contract("CErc20Immutable")
+
+
+@pytest.fixture(scope="function")
+def CompoundV2Ether() -> ape.contracts.ContractContainer:
+    return ape.project.get_contract("CEther")
 
 
 @pytest.fixture(scope="function")
