@@ -66,6 +66,25 @@ For a more structured approach, use `web3core`, a sub-package
 of [`web3cli`](./src/web3cli/) that comes with many preloaded chains, and allows
 to import chains and smart contracts dynamically.
 
+
+# web3test test suite
+
+`web3client` comes with several pytest plugins you can use to test your scripts:
+
+- `web3test-ape`: fixtures of accounts and smart contracts (erc20, compound, etc)
+- `web3test-web3client`: fixtures of clients for various smart contracts 
+- `web3test-web3factory`: fixtures of clients for various chains
+
+To use one or more plugins in your script, add the following lines at the top of your `conftest.py``:
+
+```python
+pytest_plugins = [
+    "web3test-ape", "web3test-web3client", "web3test-web3factory"
+]
+```
+
+The order of the plugins in the aray is important.
+
 # It doesn't work 😡
 
 Don't panic! Instead...

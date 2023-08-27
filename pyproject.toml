@@ -34,14 +34,14 @@ test = "ape test tests --network ::foundry"
 publish_test = "pdm publish -r testpypi -u ${PDM_PUBLISH_TEST_USERNAME} -P ${PDM_PUBLISH_TEST_PASSWORD}"
 release = "gh release create v{args} dist/web3client-{args}.tar.gz dist/web3client-{args}-py3-none-any.whl --generate-notes"
 
+[project.entry-points.pytest11]
+web3test-ape = "web3test.ape.fixtures"
+web3test-web3client = "web3test.web3client.fixtures"
+web3test-web3factory = "web3test.web3factory.fixtures"
+
 [project.urls]
 homepage = "https://github.com/coccoinomane/web3client"
 repository = "https://github.com/coccoinomane/web3client"
-
-[project.optional-dependencies]
-[tool.pdm]
-[tool.pdm.build]
-includes = ["src"]
 
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]
