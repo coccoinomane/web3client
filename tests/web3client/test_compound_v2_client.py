@@ -212,7 +212,9 @@ def test_compound_v2_ctst_repay(
     )
     # Repay the remaining amount
     client.approve_and_repay_all()
-    assert client.borrowed() < tolerance * borrow_amount
+    assert (
+        client.borrowed() == 0
+    )  # repay-all reduces borrowed amount to zero for ec20 tokens
     assert (
         abs(client.liquidity() - supply_amount)
         < tolerance * 10 ** client.get_underlying_client().decimals
@@ -246,5 +248,7 @@ def test_compound_v2_ceth_repay(
     )
     # Repay the remaining amount
     client.repay_all()
-    assert client.borrowed() < tolerance * borrow_amount
+    assert (
+        client.borrowed() < tolerance * borrow_amount
+    )  # repay-all always leaves some dust in borrowed amount for ETH
     assert abs(client.liquidity() - supply_amount) < tolerance * 10**18

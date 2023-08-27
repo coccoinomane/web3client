@@ -139,12 +139,22 @@ class CompoundV2CErc20Client(Erc20Client):
     def repay_all(self) -> HexStr:
         """Repay all tokens to the Compound V2 market, to reduce the
         amount borrowed to zero"""
-        return self.repay(self.borrowed())
+        return self.repay(2**256 - 1)
 
-    def approve_and_repay_all(self) -> HexStr:
+    def approve_and_repay_all(self, extra_approve: float = 0.01) -> HexStr:
         """Repay all tokens to the Compound V2 market, to reduce the
-        amount borrowed to zero, first approving"""
-        return self.approve_and_repay(self.borrowed())
+        amount borrowed to zero, first approving.
+
+        By default, the function will approve 1% more tokens than the
+        borrowed amount, to account for the negative interest that will
+        be accrued while the transaction resolves."""
+        borrowed = self.borrowed()
+        self.get_tx_receipt(
+            self.get_underlying_client().approve(
+                self.contract_address, int(borrowed * (1 + extra_approve))
+            )
+        )
+        return self.repay_all()
 
     ####################
     # Utils
@@ -195,7 +205,7 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
         ETH to the Compound V2 market"""
         return self.repay(amount)
 
-    def approve_and_repay_all(self) -> HexStr:
+    def approve_and_repay_all(self, extra_approve: float = None) -> HexStr:
         """Approving does not make sense for ETH, so just repay
         ETH to the Compound V2 market"""
         return self.repay_all()
@@ -208,6 +218,22 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
         """Repay ETH to the Compound V2 market, to reduce the
         amount borrowed"""
         return self.transact(self.functions.repayBorrow(), value_in_wei=amount)
+
+    def repay_all(self) -> HexStr:
+        """Repay all ETH to the Compound V2 market.
+
+        Alas, this function won't reduce the borrowed amount to zero.
+        By the time the transaction is resolved, your position will have
+        accrued negative interest, and you will still be in debt by a
+        tiny amount.  While for ERC20 tokens this is not a problem, for
+        ETH this is a problem.
+
+        Sources:
+        - https://discord.com/channels/402910780124561410/402912055448961034/855058058393026600
+        - https://discord.com/channels/402910780124561410/402910780670083094/1086345005884514374
+
+        """
+        return self.repay(self.borrowed())
 
     ####################
     # Utils
