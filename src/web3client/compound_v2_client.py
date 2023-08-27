@@ -64,10 +64,14 @@ class CompoundV2CErc20Client(Erc20Client):
 
     def supplied(self, address: Union[str, Address] = None) -> int:
         """Get the amount supplied to the market by the given
-        account; will default to the current authenticated account"""
-        if not address:
-            address = self.user_address
-        return self.functions.balanceOfUnderlying(cast(Address, address)).call()
+        account, in the underlying token; will default to the
+        current authenticated account.
+
+        This function gets the stored exchange rate and converts
+        the supplied cTokens in underlying tokens.  An alternative
+        would be to call self.functions.balanceOfUnderlying, but that
+        would require actually sending a signed transaction."""
+        return self.supplied_in_ctokens(address) * self.exchange_rate() // 10**18
 
     def total_supplied(self) -> int:
         """Get the total amount of underlying tokens supplied to the market.

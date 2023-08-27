@@ -138,10 +138,21 @@ class BaseClient:
         return self
 
     def set_account(self, private_key: str) -> Self:
+        """Make it possible for the client to sign transactions with the
+        given private key"""
         self.private_key = private_key
         self.account = Account.from_key(private_key)
         self.user_address = self.account.address
         self.w3.eth.default_account = self.account.address
+        return self
+
+    def unset_account(self) -> Self:
+        """Unset the previously added account, thus making it impossible
+        for the client to sign transactions"""
+        self.private_key = None
+        self.account = None
+        self.user_address = None
+        self.w3.eth.default_account = None
         return self
 
     def set_contract(
