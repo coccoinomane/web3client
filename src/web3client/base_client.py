@@ -12,7 +12,6 @@ from eth_account import Account
 from eth_account.datastructures import SignedMessage, SignedTransaction
 from eth_account.messages import encode_defunct
 from eth_account.signers.local import LocalAccount
-from eth_typing import Address
 from eth_typing.encoding import HexStr
 from hexbytes import HexBytes
 from typing_extensions import Self
@@ -58,7 +57,7 @@ class BaseClient:
     private_key: str = None | Private key to use (optional)
     max_priority_fee_in_gwei: float = 1 | Miner's tip, relevant only for type-2 transactions (optional, default is 1)
     upper_limit_for_base_fee_in_gwei: float = inf | Raise an exception if baseFee is larger than this (optional, default is no limit)
-    contract_address: Address = None | Address of smart contract (optional)
+    contract_address: str = None | Address of smart contract (optional)
     abi: dict[str, Any] = None | ABI of smart contract; to read from a JSON file, use class method get_abi_json() (optional)
     middlewares: List[Middleware] = [] | Ordered list of web3.py middlewares to use (optional, default is no middlewares)
 
@@ -67,7 +66,7 @@ class BaseClient:
     ------------------
     w3: Web3 = None | Web3.py client
     account: LocalAccount = None | Account object for the user
-    user_address: Address = None | Address of the user
+    user_address: str = None | Address of the user
     contract: Contract = None | Contract object of web3.py
     functions: ContractFunctions = None | ContractFunctions object of web3.py
     """
@@ -81,13 +80,13 @@ class BaseClient:
     max_priority_fee_in_gwei: float = None
     upper_limit_for_base_fee_in_gwei: float = None
     abi: dict[str, Any] = None
-    contract_address: Address = None
+    contract_address: str = None
     middlewares: List[Middleware] = None
 
     # Derived attributes
     w3: Web3
     account: LocalAccount
-    user_address: Address
+    user_address: str
     contract: Contract
     functions: ContractFunctions
 
@@ -102,7 +101,7 @@ class BaseClient:
         private_key: str = None,
         max_priority_fee_in_gwei: float = 1,
         upper_limit_for_base_fee_in_gwei: float = float("inf"),
-        contract_address: Address = None,
+        contract_address: str = None,
         abi: dict[str, Any] = None,
         middlewares: List[Middleware] = [],
     ) -> None:
@@ -155,15 +154,11 @@ class BaseClient:
         self.w3.eth.default_account = None
         return self
 
-    def set_contract(
-        self, contract_address: Address, abi: dict[str, Any] = None
-    ) -> Self:
+    def set_contract(self, contract_address: str, abi: dict[str, Any] = None) -> Self:
         abi = abi or self.abi
         if not abi:
             raise Web3ClientException("ABI not set")
-        self.contract_address = cast(
-            Address, Web3.to_checksum_address(contract_address)
-        )
+        self.contract_address = Web3.to_checksum_address(contract_address)
         self.contract = self.get_contract(contract_address, self.w3, abi=abi)
         self.functions = self.contract.functions
         return self
@@ -247,7 +242,7 @@ class BaseClient:
 
     def build_tx_with_value(
         self,
-        to: Address,
+        to: str,
         value_in_eth: float,
         nonce: Nonce = None,
         gas_limit: int = None,
@@ -264,7 +259,7 @@ class BaseClient:
 
     def build_tx_with_value_in_wei(
         self,
-        to: Address,
+        to: str,
         value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
@@ -336,7 +331,7 @@ class BaseClient:
 
     def send_eth(
         self,
-        to: Address,
+        to: str,
         value_in_eth: float,
         nonce: Nonce = None,
         gas_limit: int = None,
@@ -352,7 +347,7 @@ class BaseClient:
 
     def send_eth_in_wei(
         self,
-        to: Address,
+        to: str,
         value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
@@ -460,10 +455,10 @@ class BaseClient:
         on_connection_closed: Callable[[Exception, SubscriptionType], None] = None,
         once: bool = False,
         subscription_type: SubscriptionType = "newPendingTransactions",
-        logs_addresses: List[Address] = None,
+        logs_addresses: List[str] = None,
         logs_topics: List[str] = None,
-        tx_from: List[Address] = None,
-        tx_to: List[Address] = None,
+        tx_from: List[str] = None,
+        tx_to: List[str] = None,
         tx_value: Tuple[float, float] = None,
         tx_on_fetch: Callable[[TxData, Any], None] = None,
         tx_on_fetch_error: Callable[[Exception, Any], None] = None,
@@ -602,10 +597,10 @@ class BaseClient:
         on_connection_closed: Callable[[Exception, SubscriptionType], None] = None,
         once: bool = False,
         subscription_type: SubscriptionType = "newPendingTransactions",
-        logs_addresses: List[Address] = None,
+        logs_addresses: List[str] = None,
         logs_topics: List[str] = None,
-        tx_from: List[Address] = None,
-        tx_to: List[Address] = None,
+        tx_from: List[str] = None,
+        tx_to: List[str] = None,
         tx_value: Tuple[float, float] = None,
         tx_on_fetch: Callable[[TxData, Any], None] = None,
         tx_on_fetch_error: Callable[[Exception, Any], None] = None,
@@ -730,7 +725,7 @@ class BaseClient:
     # Misc read functions
     ######################
 
-    def get_nonce(self, address: Address = None) -> Nonce:
+    def get_nonce(self, address: str = None) -> Nonce:
         if not address:
             address = self.user_address
         return self.w3.eth.get_transaction_count(Web3.to_checksum_address(address))
@@ -747,7 +742,7 @@ class BaseClient:
         """
         return self.w3.eth.get_block("pending")
 
-    def estimate_gas_for_transfer(self, to: Address, value_in_wei: int) -> int:
+    def estimate_gas_for_transfer(self, to: str, value_in_wei: int) -> int:
         """
         Return the gas that would be required to send some ETH
         (expressed in Wei) to an address
@@ -760,12 +755,12 @@ class BaseClient:
             }
         )
 
-    def get_balance_in_wei(self, address: Address = None) -> Wei:
+    def get_balance_in_wei(self, address: str = None) -> Wei:
         if not address:
             address = self.user_address
         return self.w3.eth.get_balance(Web3.to_checksum_address(address))
 
-    def get_balance_in_eth(self, address: Address = None) -> float:
+    def get_balance_in_eth(self, address: str = None) -> float:
         if not address:
             address = self.user_address
         return float(Web3.from_wei(self.get_balance_in_wei(address), "ether"))
@@ -844,7 +839,7 @@ class BaseClient:
 
     @staticmethod
     def get_contract(
-        address: Address,
+        address: str,
         provider: Web3,
         abi_file: str = None,
         abi: dict[str, Any] = None,
@@ -917,8 +912,8 @@ class BaseClient:
     @staticmethod
     def filter_tx(
         tx: TxData,
-        from_: List[Address] = None,
-        to: List[Address] = None,
+        from_: List[str] = None,
+        to: List[str] = None,
         value: Tuple[float, float] = None,
     ) -> bool:
         """Given a transaction, return True if the transaction

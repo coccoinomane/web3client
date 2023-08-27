@@ -1,6 +1,6 @@
-from typing import List, Union, cast
+from typing import List, cast
 
-from eth_typing import Address, HexStr
+from eth_typing import HexStr
 
 from web3client.base_client import BaseClient
 from web3client.erc20_client import Erc20Client
@@ -23,10 +23,10 @@ class CompoundV2CErc20Client(Erc20Client):
         """Get the address of the underlying asset"""
         return self.functions.underlying().call()
 
-    def underlying_balance(self, address: Union[str, Address] = None) -> int:
+    def underlying_balance(self, address: str = None) -> int:
         """Get the balance of the given address in the underlying
         token; will default to the current authenticated account"""
-        return self.get_underlying_client().balance_in_wei(cast(Address, address))
+        return self.get_underlying_client().balance_in_wei(address)
 
     def exchange_rate(self) -> int:
         """Get the stored exchange rate from cToken to underlying"""
@@ -50,19 +50,19 @@ class CompoundV2CErc20Client(Erc20Client):
         it can be smaller if the market has been drained by an exploit"""
         return self.functions.getCash().call()
 
-    def borrowed(self, address: Union[str, Address] = None) -> int:
+    def borrowed(self, address: str = None) -> int:
         """Get the amount borrowed by the given account;
         will default to the current authenticated account"""
         if not address:
             address = self.user_address
-        return self.functions.borrowBalanceCurrent(cast(Address, address)).call()
+        return self.functions.borrowBalanceCurrent(address).call()
 
     def total_borrowed(self) -> int:
         """Get the total amount of underlying loaned out by
         the market"""
         return self.functions.totalBorrows().call()
 
-    def supplied(self, address: Union[str, Address] = None) -> int:
+    def supplied(self, address: str = None) -> int:
         """Get the amount supplied to the market by the given
         account, in the underlying token; will default to the
         current authenticated account.
@@ -82,12 +82,12 @@ class CompoundV2CErc20Client(Erc20Client):
         c_tokens_supply = self.total_supply()
         return c_tokens_supply * self.exchange_rate() // 10**18
 
-    def supplied_in_ctokens(self, address: Union[str, Address] = None) -> int:
+    def supplied_in_ctokens(self, address: str = None) -> int:
         """Get the amount of cTokens owned by the given account;
         will default to the current authenticated account"""
         if not address:
             address = self.user_address
-        return self.functions.balanceOf(cast(Address, address)).call()
+        return self.functions.balanceOf(address).call()
 
     ####################
     # Write
@@ -159,7 +159,7 @@ class CompoundV2CErc20Client(Erc20Client):
         """Get the underlying token client"""
         return cast(
             Erc20Client,
-            self.clone(Erc20Client).set_contract(cast(Address, self.underlying())),
+            self.clone(Erc20Client).set_contract(self.underlying()),
         )
 
 
@@ -176,10 +176,10 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
     def underlying(self) -> str:
         raise Web3ClientException("CEther market does not have an underlying token")
 
-    def underlying_balance(self, address: Union[str, Address] = None) -> int:
+    def underlying_balance(self, address: str = None) -> int:
         """Get the balance of the given address in ETH; will default
         to the current authenticated account"""
-        return self.get_balance_in_wei(cast(Address, address))
+        return self.get_balance_in_wei(address)
 
     ####################
     # Write

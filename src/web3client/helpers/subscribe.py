@@ -1,7 +1,6 @@
 import json
 from typing import Any, Callable, Dict, List, Tuple, Union
 
-from eth_typing import Address
 from websockets.client import WebSocketClientProtocol
 
 from web3client.exceptions import Web3ClientException
@@ -12,7 +11,7 @@ async def subscribe_to_notification(
     ws: WebSocketClientProtocol,
     type: SubscriptionType,
     on_subscribe: Callable[[Any, SubscriptionType], None] = None,
-    logs_addresses: List[Address] = None,
+    logs_addresses: List[str] = None,
     logs_topics: List[str] = None,
 ) -> str:
     """Given a websocket connection to an RPC, subscribe to the given

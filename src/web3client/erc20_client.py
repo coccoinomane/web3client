@@ -1,7 +1,7 @@
 from decimal import Decimal
 from functools import cached_property
 
-from eth_typing import Address, HexStr
+from eth_typing import HexStr
 from web3 import Web3
 from web3.types import Nonce
 
@@ -38,7 +38,7 @@ class Erc20Client(BaseClient):
     # Read
     ####################
 
-    def balance(self, address: Address = None) -> Decimal:
+    def balance(self, address: str = None) -> Decimal:
         """
         Return the amount of the ERC20 token held by the given
         address; if no address is specified, return the amount
@@ -47,7 +47,7 @@ class Erc20Client(BaseClient):
         balance_in_wei = self.balance_in_wei(address)
         return self.from_wei(balance_in_wei, self.decimals)
 
-    def balance_in_wei(self, address: Address = None) -> int:
+    def balance_in_wei(self, address: str = None) -> int:
         """
         Return the amount of the ERC20 token held by the given address,
         in wei; if no address is specified, return the amount held by
@@ -90,7 +90,7 @@ class Erc20Client(BaseClient):
 
     def transfer(
         self,
-        to: Address,
+        to: str,
         amount: int,
         value_in_wei: int = None,
         nonce: Nonce = None,
@@ -111,7 +111,7 @@ class Erc20Client(BaseClient):
 
     def approve(
         self,
-        spender: Address,
+        spender: str,
         amount: int,
         value_in_wei: int = None,
         nonce: Nonce = None,
