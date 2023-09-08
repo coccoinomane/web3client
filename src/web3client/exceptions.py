@@ -20,3 +20,7 @@ class Erc20TokenNotFound(Web3ClientException):
 
 class Erc20TokenNotUnique(Web3ClientException):
     pass
+
+
+class OrbiterClientException(Web3ClientException):
+    pass
