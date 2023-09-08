@@ -2,7 +2,7 @@
 PyTest Fixtures.
 """
 
-from typing import Any, Iterator, List, cast
+from typing import Any, List, cast
 
 import pytest
 from web3.types import ABI
@@ -69,24 +69,40 @@ def ape_chain_name(
 
 
 @pytest.fixture(scope="session")
-def alice(accounts: ape.managers.accounts.AccountManager) -> ape.api.AccountAPI:
+def alice(
+    accounts: ape.managers.accounts.AccountManager, accounts_keys: List[str]
+) -> ape.api.AccountAPI:
     """A Brownie account preloaded in the local chain"""
+    accounts[0].private_key = accounts_keys[0]
     return accounts[0]
 
 
 @pytest.fixture(scope="session")
-def bob(accounts: ape.managers.accounts.AccountManager) -> ape.api.AccountAPI:
+def bob(
+    accounts: ape.managers.accounts.AccountManager, accounts_keys: List[str]
+) -> ape.api.AccountAPI:
     """A Brownie account preloaded in the local chain"""
+    accounts[1].private_key = accounts_keys[1]
     return accounts[1]
 
 
 @pytest.fixture(scope="session")
-def accounts_keys() -> Iterator[List[str]]:
+def alice_private_key(accounts_keys: List[str]) -> str:
+    return accounts_keys[0]
+
+
+@pytest.fixture(scope="session")
+def bob_private_key(accounts_keys: List[str]) -> str:
+    return accounts_keys[1]
+
+
+@pytest.fixture(scope="session")
+def accounts_keys() -> List[str]:
     """Private keys of the local accounts created by ape.
     There are just the keys from the mnemonic phrase
     'test test test test test test test test test test test junk'
     following the standard path m/44'/60'/0'/0/{account_index}"""
-    yield [
+    return [
         "0xdd23ca549a97cb330b011aebb674730df8b14acaee42d211ab45692699ab8ba5",
         "0xf1aa5a7966c3863ccde3047f6a1e266cdc0c76b399e256b8fede92b1c69e4f4e",
         "0x43f149de89d64bf9a9099be19e1b1f7a4db784af8fa07caf6f08dc86ba65636b",
@@ -108,9 +124,9 @@ def accounts_keys() -> Iterator[List[str]]:
 
 
 @pytest.fixture(scope="session")
-def simple_abi() -> Iterator[ABI]:
+def simple_abi() -> ABI:
     """A simple ABI for a contract with a single function"""
-    yield [
+    return [
         {
             "constant": False,
             "inputs": [{"name": "a", "type": "uint256"}],
