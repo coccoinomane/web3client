@@ -127,6 +127,14 @@ class BaseClient:
         if middlewares:
             self.set_middlewares(middlewares)
 
+        # Further initialization
+        self.init()
+
+    def init(self) -> None:
+        """Further initialization.  Run after __init__.  Useful for subclasses
+        who do not want to override __init__()"""
+        pass
+
     ####################
     # Setters
     ####################
