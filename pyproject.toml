@@ -50,6 +50,11 @@ build-backend = "pdm.pep517.api"
 [tool.black]
 line-length = 88
 
+[tool.setuptools.package-data]
+"web3client" = ["py.typed"]
+"web3factory" = ["py.typed"]
+"web3test" = ["py.typed"]
+
 [tool.mypy]
 check_untyped_defs = true
 disallow_any_generics = true
