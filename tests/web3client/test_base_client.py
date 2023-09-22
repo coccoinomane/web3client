@@ -23,6 +23,16 @@ def test_base_client_transfer(
     assert bob.balance == bob_balance + 10**18
 
 
+@pytest.mark.local
+def test_base_client_transfer_non_checksum_address(
+    alice_base_client: BaseClient,
+    bob: ape.api.AccountAPI,
+) -> None:
+    bob_balance = bob.balance
+    alice_base_client.send_eth_in_wei(str(bob.address).lower(), 10**18)
+    assert bob.balance == bob_balance + 10**18
+
+
 def test_base_client_clone(alice_base_client: BaseClient) -> None:
     alice_base_client_clone = alice_base_client.clone()
     assert alice_base_client_clone.node_uri == alice_base_client.node_uri

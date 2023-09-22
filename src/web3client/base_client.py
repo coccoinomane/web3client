@@ -283,7 +283,7 @@ class BaseClient:
             max_priority_fee_in_gwei,
         )
         extra_params: TxParams = {
-            "to": to,
+            "to": Web3.to_checksum_address(to),
             "value": cast(Wei, value_in_wei),
             "gas": self.estimate_gas_for_transfer(to, value_in_wei),
         }
@@ -758,7 +758,7 @@ class BaseClient:
         return self.w3.eth.estimate_gas(
             {
                 "from": self.user_address,
-                "to": to,
+                "to": Web3.to_checksum_address(to),
                 "value": cast(Wei, value_in_wei),
             }
         )

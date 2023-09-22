@@ -27,6 +27,17 @@ def test_erc20_client_transfer(
     assert TST.balanceOf(bob) == bob_balance + 10**18
 
 
+@pytest.mark.local
+def test_erc20_client_transfer_non_checksum_address(
+    TST: ape.contracts.ContractInstance,
+    alice_erc20_client: Erc20Client,
+    bob: ape.api.AccountAPI,
+) -> None:
+    bob_balance = TST.balanceOf(bob)
+    alice_erc20_client.transfer(str(bob.address).lower(), 10**18)
+    assert TST.balanceOf(bob) == bob_balance + 10**18
+
+
 def test_erc20_client_clone(
     alice_erc20_client: Erc20Client,
     TST_0: ape.contracts.ContractInstance,
