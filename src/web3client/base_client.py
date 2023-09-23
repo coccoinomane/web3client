@@ -750,14 +750,16 @@ class BaseClient:
         """
         return self.w3.eth.get_block("pending")
 
-    def estimate_gas_for_transfer(self, to: str, value_in_wei: int) -> int:
+    def estimate_gas_for_transfer(
+        self, to: str, value_in_wei: int, from_: str = None
+    ) -> int:
         """
         Return the gas that would be required to send some ETH
         (expressed in Wei) to an address
         """
         return self.w3.eth.estimate_gas(
             {
-                "from": self.user_address,
+                "from": from_ or self.user_address,
                 "to": Web3.to_checksum_address(to),
                 "value": cast(Wei, value_in_wei),
             }
