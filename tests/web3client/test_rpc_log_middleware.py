@@ -1,6 +1,4 @@
-import json
 from datetime import datetime
-from pathlib import Path
 
 import pytest
 from web3 import Web3
@@ -8,9 +6,10 @@ from web3 import Web3
 import ape
 from web3client.base_client import BaseClient
 from web3client.middlewares.rpc_log_middleware import (
-    InternalRpcLog,
+    MemoryLog,
     RPCEndpoint,
     RPCResponse,
+    TxMemoryLog,
     construct_rpc_log_middleware,
 )
 
@@ -22,7 +21,7 @@ def test_rpc_log_middleware_internal_log_send(
 ) -> None:
     """Send ETH and check that the internal log contains the request and
     response"""
-    log = InternalRpcLog(rpc_whitelist=["eth_sendRawTransaction"])
+    log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
     alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 2
@@ -47,7 +46,7 @@ def test_rpc_log_middleware_internal_log_estimate_and_send(
 ) -> None:
     """Send ETH and check that the internal log contains the request and
     response, for both the eth_estimateGas and eth_sendRawTransaction methods"""
-    log = InternalRpcLog(rpc_whitelist=["eth_estimateGas", "eth_sendRawTransaction"])
+    log = MemoryLog(rpc_whitelist=["eth_estimateGas", "eth_sendRawTransaction"])
     alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 4
@@ -70,66 +69,60 @@ def test_rpc_log_middleware_internal_log_empty_whitelist(
 ) -> None:
     """Send ETH and check that the internal log is empty if the whitelist is
     None"""
-    log = InternalRpcLog(rpc_whitelist=[])
+    log = MemoryLog(rpc_whitelist=[])
     alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
     alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 0
 
 
-def test_unit_log_middleware_internal_log() -> None:
-    """Unit test for the ``InternalRpcLog`` class"""
+@pytest.mark.local
+def test_rpc_log_middleware_tx_internal(
+    alice_base_client: BaseClient,
+    bob: ape.api.AccountAPI,
+) -> None:
+    """Send ETH and check that the transaction is correctly decoded and
+    included in the tx_entries attribute"""
+    log = TxMemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
+    alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
+    assert len(log.tx_entries) == 1
+    # Check tx data
+    tx_data = log.tx_entries[0]
+    assert Web3.to_hex(tx_data["hash"]) == tx_hash
+    assert tx_data["from"] == alice_base_client.user_address
+    assert tx_data["to"] == bob.address
+    assert int(tx_data["value"]) == 10**18
+
+
+#   _   _          _   _
+#  | | | |  _ _   (_) | |_
+#  | |_| | | ' \  | | |  _|
+#   \___/  |_||_| |_|  \__|
+
+
+def test_unit_rpc_log_middleware_internal_log() -> None:
+    """Unit test for the ``MemoryLog`` class"""
     # Arrange
     method = RPCEndpoint("test_method")
     params = {"param1": "value1", "param2": "value2"}
     response = RPCResponse(result="test_result")
-    internal_log_entry = {
+    internal_log_entry: MemoryLog.Entry = {
         "method": method,
         "params": params,
         "response": response,
+        "timestamp": datetime.now(),
+        "type": "response",
     }
     w3 = Web3()
 
     # Act
-    internal_log = InternalRpcLog()
+    internal_log = MemoryLog()
     internal_log.log_response(method, params, w3, response)
 
     # Assert
     assert len(internal_log.entries) == 1
-    assert internal_log.entries[0] == internal_log_entry
-
-
-def test_unit_log_middleware_internal_log_dump_json(tmp_path: Path) -> None:
-    # Create a temporary file to write to
-    f = tmp_path / "internal_log_dump.json"
-
-    # Create an instance of InternalRpcLog
-    log = InternalRpcLog()
-
-    # Add some entries to the log
-    log.entries = [
-        {
-            "type": "request",
-            "timestamp": datetime.now(),
-            "method": "eth_getBlockByNumber",
-            "params": ["0x0", True],
-        },
-        {
-            "type": "response",
-            "timestamp": datetime.now(),
-            "method": "eth_getBlockByNumber",
-            "params": ["0x0", True],
-            "response": {"result": "0x1234", "error": None},
-        },
-    ]
-
-    # Dump the log to the temporary file
-    log.dump_json(f)
-
-    # Read the contents of the file and parse the JSON
-    contents = json.loads(f.read_text())
-
-    print("contents")
-    print(contents)
-
-    # Check that the contents of the file match the log entries
-    assert contents == log.entries
+    assert internal_log.entries[0]["method"] == internal_log_entry["method"]
+    assert internal_log.entries[0]["params"] == internal_log_entry["params"]
+    assert internal_log.entries[0]["response"] == internal_log_entry["response"]
+    assert internal_log.entries[0]["timestamp"] > internal_log_entry["timestamp"]
+    assert internal_log.entries[0]["type"] == internal_log_entry["type"]
