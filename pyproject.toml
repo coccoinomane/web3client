@@ -16,6 +16,7 @@ dependencies = [
     "typing-extensions>=4.4.0",
     "pre-commit>=2.21.0",
     "websockets>=10.0",
+    "py-evm>=0.7.0a4",
 ]
 
 [tool.pdm.dev-dependencies]
