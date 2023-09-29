@@ -1,6 +1,8 @@
 from abc import ABC
+from datetime import datetime
 from typing import Any, Callable, Collection, List
 
+from typing_extensions import Literal, NotRequired
 from web3 import Web3
 from web3._utils.compat import TypedDict
 from web3.types import Middleware, RPCEndpoint, RPCResponse
@@ -43,9 +45,11 @@ class InternalRpcLog(BaseRpcLog):
     self.entries internal attribute"""
 
     class Entry(TypedDict):
-        method: RPCEndpoint
+        type: Literal["request", "response"]
+        timestamp: datetime
+        method: str
         params: Any
-        response: RPCResponse
+        response: NotRequired[RPCResponse]
 
     entries: List[Entry]
 
@@ -53,10 +57,28 @@ class InternalRpcLog(BaseRpcLog):
         if not hasattr(self, "internal_log"):
             self.entries = []
 
+    def log_request(self, method: RPCEndpoint, params: Any, w3: Web3) -> None:
+        self.entries.append(
+            {
+                "type": "request",
+                "timestamp": datetime.now(),
+                "method": method,
+                "params": params,
+            }
+        )
+
     def log_response(
         self, method: RPCEndpoint, params: Any, w3: Web3, response: RPCResponse
     ) -> None:
-        self.entries.append({"method": method, "params": params, "response": response})
+        self.entries.append(
+            {
+                "type": "response",
+                "timestamp": datetime.now(),
+                "method": method,
+                "params": params,
+                "response": response,
+            }
+        )
 
 
 def construct_rpc_log_middleware(log: BaseRpcLog) -> Middleware:
