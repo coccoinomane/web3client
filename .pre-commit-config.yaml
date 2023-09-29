@@ -15,6 +15,8 @@ repos:
       - id: black
         name: black
 
+### For mypy, pre-commit ends up giving a different result than simply
+### running `.venv/bin/mypy src tests`. So, we disabled it.
 # -   repo: https://github.com/pre-commit/mirrors-mypy
 #     rev: v1.5.1
 #     hooks:
