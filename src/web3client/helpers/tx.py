@@ -7,7 +7,7 @@ from eth.vm.forks.arrow_glacier.transactions import (
 from eth_utils import encode_hex, to_bytes
 from hexbytes import HexBytes
 from web3 import Web3
-from web3.types import AccessList, Nonce, TxData, Wei
+from web3.types import AccessList, Nonce, RPCResponse, TxData, Wei
 
 
 def parse_raw_tx_pyevm(raw_tx: str) -> SignedTransactionAPI:
@@ -51,3 +51,12 @@ def parse_raw_tx(raw_tx: str) -> TxData:
         "v": None,
         "value": cast(Wei, tx.value),
     }
+
+
+def is_rpc_response_ok(response: RPCResponse) -> bool:
+    """Check if an RPC response did not error"""
+    return (
+        "error" not in response
+        and "result" in response
+        and response["result"] is not None
+    )

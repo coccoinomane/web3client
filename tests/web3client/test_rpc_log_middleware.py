@@ -6,16 +6,16 @@ from web3 import Web3
 import ape
 from web3client.base_client import BaseClient
 from web3client.middlewares.rpc_log_middleware import (
+    LogEntry,
     MemoryLog,
     RPCEndpoint,
     RPCResponse,
-    TxMemoryLog,
     construct_rpc_log_middleware,
 )
 
 
 @pytest.mark.local
-def test_rpc_log_middleware_internal_log_send(
+def test_rpc_log_middleware_memory_log_send(
     alice_base_client: BaseClient,
     bob: ape.api.AccountAPI,
 ) -> None:
@@ -40,7 +40,7 @@ def test_rpc_log_middleware_internal_log_send(
 
 
 @pytest.mark.local
-def test_rpc_log_middleware_internal_log_estimate_and_send(
+def test_rpc_log_middleware_memory_log_estimate_and_send(
     alice_base_client: BaseClient,
     bob: ape.api.AccountAPI,
 ) -> None:
@@ -63,7 +63,7 @@ def test_rpc_log_middleware_internal_log_estimate_and_send(
 
 
 @pytest.mark.local
-def test_rpc_log_middleware_internal_log_empty_whitelist(
+def test_rpc_log_middleware_memory_log_empty_whitelist(
     alice_base_client: BaseClient,
     bob: ape.api.AccountAPI,
 ) -> None:
@@ -76,22 +76,57 @@ def test_rpc_log_middleware_internal_log_empty_whitelist(
 
 
 @pytest.mark.local
-def test_rpc_log_middleware_tx_internal(
+def test_rpc_log_middleware_memory_log_decode(
     alice_base_client: BaseClient,
     bob: ape.api.AccountAPI,
 ) -> None:
-    """Send ETH and check that the transaction is correctly decoded and
-    included in the tx_entries attribute"""
-    log = TxMemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
+    """Send ETH and check that the transaction request is included in the
+    entries with its decoded tx_data"""
+    log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
     alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
-    assert len(log.tx_entries) == 1
+    # Test that the outgoing request was correctly decoded
+    tx_requests = log.get_tx_requests()
+    assert len(tx_requests) == 1
     # Check tx data
-    tx_data = log.tx_entries[0]
+    tx_data = tx_requests[0]["tx_data"]
     assert Web3.to_hex(tx_data["hash"]) == tx_hash
     assert tx_data["from"] == alice_base_client.user_address
     assert tx_data["to"] == bob.address
     assert int(tx_data["value"]) == 10**18
+    # Check that tx response does not contain tx_data or tx_receipt
+    # because we did not request it
+    tx_responses = log.get_tx_responses()
+    assert len(tx_responses) == 1
+    assert tx_responses[0]["response"]["result"] == tx_hash
+    assert tx_responses[0]["tx_data"] == None
+    assert tx_responses[0]["tx_receipt"] == None
+
+
+@pytest.mark.local
+def test_rpc_log_middleware_memory_log_fetch(
+    alice_base_client: BaseClient,
+    bob: ape.api.AccountAPI,
+) -> None:
+    """Send ETH and check that the transaction response is included in the
+    entries with its fetched tx_data and tx_receipts"""
+    log = MemoryLog(
+        rpc_whitelist=["eth_sendRawTransaction"],
+        fetch_tx_data=True,
+        fetch_tx_receipt=True,
+    )
+    alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
+    # Check tx response
+    tx_responses = log.get_tx_responses()
+    assert len(tx_responses) == 1
+    # Check response tx_data
+    tx_data = tx_responses[0]["tx_data"]
+    assert int(tx_data["value"]) == 10**18
+    # Check response tx_receipt
+    tx_receipt = tx_responses[0]["tx_receipt"]
+    assert Web3.to_hex(tx_receipt["transactionHash"]) == tx_hash
+    assert type(tx_receipt["gasUsed"]) is int
 
 
 #   _   _          _   _
@@ -100,13 +135,13 @@ def test_rpc_log_middleware_tx_internal(
 #   \___/  |_||_| |_|  \__|
 
 
-def test_unit_rpc_log_middleware_internal_log() -> None:
+def test_unit_rpc_log_middleware_memory_log() -> None:
     """Unit test for the ``MemoryLog`` class"""
     # Arrange
     method = RPCEndpoint("test_method")
     params = {"param1": "value1", "param2": "value2"}
     response = RPCResponse(result="test_result")
-    internal_log_entry: MemoryLog.Entry = {
+    memory_log_entry: LogEntry = {
         "method": method,
         "params": params,
         "response": response,
@@ -116,13 +151,13 @@ def test_unit_rpc_log_middleware_internal_log() -> None:
     w3 = Web3()
 
     # Act
-    internal_log = MemoryLog()
-    internal_log.log_response(method, params, w3, response)
+    memory_log = MemoryLog()
+    memory_log.log_response(method, params, w3, response, None, None)
 
     # Assert
-    assert len(internal_log.entries) == 1
-    assert internal_log.entries[0]["method"] == internal_log_entry["method"]
-    assert internal_log.entries[0]["params"] == internal_log_entry["params"]
-    assert internal_log.entries[0]["response"] == internal_log_entry["response"]
-    assert internal_log.entries[0]["timestamp"] > internal_log_entry["timestamp"]
-    assert internal_log.entries[0]["type"] == internal_log_entry["type"]
+    assert len(memory_log.entries) == 1
+    assert memory_log.entries[0]["method"] == memory_log_entry["method"]
+    assert memory_log.entries[0]["params"] == memory_log_entry["params"]
+    assert memory_log.entries[0]["response"] == memory_log_entry["response"]
+    assert memory_log.entries[0]["timestamp"] > memory_log_entry["timestamp"]
+    assert memory_log.entries[0]["type"] == memory_log_entry["type"]
