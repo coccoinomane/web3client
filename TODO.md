@@ -2,7 +2,8 @@
 
 # To do
 
-- Compound borrow
+- Make internal log specific per client
+- Log class that decodes raw transactions, estimate gas and eth_call
 
 # Backlog
 
