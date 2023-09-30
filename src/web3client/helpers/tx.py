@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, Dict, cast
 
 from eth.abc import SignedTransactionAPI
 from eth.vm.forks.arrow_glacier.transactions import (
@@ -50,6 +50,48 @@ def parse_raw_tx(raw_tx: str) -> TxData:
         "type": tx.type_id,
         "v": None,
         "value": cast(Wei, tx.value),
+    }
+
+
+def parse_estimate_gas_tx(params: Dict[str, Any]) -> TxData:
+    """Takes the parameters passed to the RPC method eth_estimateGas
+    and returns a TxData dict with them"""
+
+    maxFeePerGas = (
+        cast(Wei, int(params["maxFeePerGas"], 16))
+        if params.get("maxFeePerGas")
+        else None
+    )
+    maxPriorityFeePerGas = (
+        cast(Wei, int(params["maxPriorityFeePerGas"], 16))
+        if params.get("maxPriorityFeePerGas")
+        else None
+    )
+    gasPrice = cast(
+        Wei, int(params["gasPrice"], 16) if params.get("gasPrice") else None
+    )
+
+    return {
+        "accessList": params.get("accessList", ()),
+        "blockHash": None,
+        "blockNumber": None,
+        "chainId": int(params["chainId"], 16) if params.get("chainId") else None,
+        "data": HexBytes(params["data"]) if params.get("data") else None,
+        "from": params.get("from", None),
+        "gas": params.get("gas", None),
+        "gasPrice": gasPrice,
+        "maxFeePerGas": maxFeePerGas,
+        "maxPriorityFeePerGas": maxPriorityFeePerGas,
+        "hash": None,
+        "input": None,
+        "nonce": cast(Nonce, int(params["nonce"], 16)) if params.get("nonce") else None,
+        "r": None,
+        "s": None,
+        "to": params.get("to", None),
+        "transactionIndex": None,
+        "type": int(params["type"], 16) if params.get("type") else None,
+        "v": None,
+        "value": cast(Wei, int(params["value"], 16) if params.get("value") else 0),
     }
 
 

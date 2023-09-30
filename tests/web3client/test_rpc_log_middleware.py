@@ -5,6 +5,7 @@ from web3 import Web3
 
 import ape
 from web3client.base_client import BaseClient
+from web3client.erc20_client import Erc20Client
 from web3client.middlewares.rpc_log_middleware import (
     LogEntry,
     MemoryLog,
@@ -76,7 +77,7 @@ def test_rpc_log_middleware_memory_log_empty_whitelist(
 
 
 @pytest.mark.local
-def test_rpc_log_middleware_memory_log_decode(
+def test_rpc_log_middleware_memory_log_decode_raw(
     alice_base_client: BaseClient,
     bob: ape.api.AccountAPI,
 ) -> None:
@@ -85,10 +86,10 @@ def test_rpc_log_middleware_memory_log_decode(
     log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
     alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
-    # Test that the outgoing request was correctly decoded
+    # Check that the tx was logged
     tx_requests = log.get_tx_requests()
     assert len(tx_requests) == 1
-    # Check tx data
+    # Check that the outgoing eth_sendRawTransaction request was correctly decoded
     tx_data = tx_requests[0]["tx_data"]
     assert Web3.to_hex(tx_data["hash"]) == tx_hash
     assert tx_data["from"] == alice_base_client.user_address
@@ -101,6 +102,34 @@ def test_rpc_log_middleware_memory_log_decode(
     assert tx_responses[0]["response"]["result"] == tx_hash
     assert tx_responses[0]["tx_data"] == None
     assert tx_responses[0]["tx_receipt"] == None
+
+
+@pytest.mark.local
+def test_rpc_log_middleware_memory_log_decode_estimate_gas(
+    alice_erc20_client: Erc20Client,
+    bob: ape.api.AccountAPI,
+) -> None:
+    """Estimate gas spent for a token transfer, and check that the request is
+    included in the entries with its decoded tx_data"""
+    log = MemoryLog(rpc_whitelist=["eth_estimateGas"])
+    alice_erc20_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    # Send a token transfer.  This will trigger an eth_estimateGas request
+    alice_erc20_client.transfer(bob.address, 10**18)
+    # Check that the tx was logged
+    tx_requests = log.get_tx_requests()
+    assert len(tx_requests) == 1
+    # Check that the outgoing eth_estimateGas request was correctly decoded
+    tx_data = tx_requests[0]["tx_data"]
+    assert tx_data["from"] == alice_erc20_client.user_address
+    assert tx_data["to"] == alice_erc20_client.contract_address
+    assert tx_data["data"]
+    assert int(tx_data["value"]) == 0
+    # Check that the response is simply an integer number
+    tx_responses = log.get_tx_responses()
+    assert len(tx_responses) == 1
+    assert type(tx_responses[0]["response"]["result"]) is str
+    assert tx_responses[0]["response"]["result"].startswith("0x")
+    assert int(tx_responses[0]["response"]["result"], 16) > 0
 
 
 @pytest.mark.local

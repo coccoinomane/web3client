@@ -2,12 +2,17 @@ from abc import ABC
 from datetime import datetime
 from typing import Any, Callable, Collection, List
 
+import rlp  # type: ignore
 from typing_extensions import Literal, NotRequired, override
 from web3 import Web3
 from web3._utils.compat import TypedDict
 from web3.types import Middleware, RPCEndpoint, RPCResponse, TxData, TxReceipt
 
-from web3client.helpers.tx import is_rpc_response_ok, parse_raw_tx
+from web3client.helpers.tx import (
+    is_rpc_response_ok,
+    parse_estimate_gas_tx,
+    parse_raw_tx,
+)
 
 TX_DATA_METHODS = ["eth_sendRawTransaction", "eth_call", "eth_estimateGas"]
 """RPC endpoints whose parameters can be mapped or decoded to a TxData object"""
@@ -62,8 +67,8 @@ class BaseRpcLog(ABC):
         if self.decode_tx_data:
             if method == "eth_sendRawTransaction":
                 tx_data = parse_raw_tx(params[0])
-            # elif method == "eth_estimateGas":
-            #     tx_data = parse_raw_tx(params[0]["data"])
+            elif method == "eth_estimateGas":
+                tx_data = parse_estimate_gas_tx(params[0])
             # elif method == "eth_call":
             #     tx_data = parse_raw_tx(params[0]["data"])
         # Call logging function
