@@ -95,6 +95,13 @@ def parse_estimate_gas_tx(params: Dict[str, Any]) -> TxData:
     }
 
 
+def parse_call_tx(params: Dict[str, Any]) -> TxData:
+    """Takes the parameters passed to the RPC method eth_call
+    and returns a TxData dict with them.  This is treated exactly the same as an
+    eth_estimateGas call."""
+    return parse_estimate_gas_tx(params)
+
+
 def is_rpc_response_ok(response: RPCResponse) -> bool:
     """Check if an RPC response did not error"""
     return (
