@@ -1,6 +1,8 @@
+import logging
 from datetime import datetime
 
 import pytest
+from pytest import LogCaptureFixture
 from web3 import Web3
 
 import ape
@@ -8,6 +10,7 @@ from web3client.base_client import BaseClient
 from web3client.erc20_client import Erc20Client
 from web3client.middlewares.rpc_log_middleware import (
     MemoryLog,
+    PythonLog,
     RPCEndpoint,
     RPCResponse,
     construct_rpc_log_middleware,
@@ -248,3 +251,31 @@ def test_unit_rpc_log_middleware_memory_log() -> None:
     assert memory_log.entries[0]["response"] == memory_log_entry["response"]
     assert memory_log.entries[0]["timestamp"] > memory_log_entry["timestamp"]
     assert memory_log.entries[0]["type"] == memory_log_entry["type"]
+
+
+def test_unit_rpc_log_middleware_python_log(caplog: LogCaptureFixture) -> None:
+    """Unit test for the ``PythonLog`` class"""
+    # Arrange
+    logger = logging.getLogger("test_logger")
+    logger.setLevel(logging.INFO)
+    method = RPCEndpoint("test_method")
+    params = {"param1": "value1", "param2": "value2"}
+    response = RPCResponse(result="test_result")
+    w3 = Web3()
+
+    # Act
+    python_log = PythonLog(logger=logger)
+    python_log.log_request(method, params, w3, None)
+    python_log.log_response(method, params, w3, response, None, None)
+
+    # Get all info records in `test_logger` log
+    records = [
+        r
+        for r in caplog.record_tuples
+        if r[0] == "test_logger" and r[1] == logging.INFO
+    ]
+
+    # Assert
+    assert len(records) == 2
+    assert "RPC request" in records[0][2]
+    assert "RPC response" in records[1][2]

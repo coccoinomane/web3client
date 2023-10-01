@@ -39,7 +39,7 @@ class BaseRpcLog(ABC):
         called.  By default, all responses are logged.
     """
 
-    logger = logging.getLogger("web3client.middlewares.RpcLog")
+    class_logger = logging.getLogger("web3client.middlewares.RpcLog")
 
     def __init__(
         self,
@@ -92,7 +92,7 @@ class BaseRpcLog(ABC):
                 elif method == "eth_call":
                     tx_data = parse_call_tx(params[0])
         except Exception:
-            self.logger.warning(f"Could not decode call to '{method}'")
+            self.class_logger.warning(f"Could not decode call to '{method}'")
 
         # Call logging function
         self.log_request(method, params, w3, tx_data)
@@ -149,6 +149,72 @@ class BaseRpcLog(ABC):
         and/or self.fetch_tx_receipt=True, and (3) the request was successful.
         """
         pass
+
+
+class PythonLog(BaseRpcLog):
+    """An RPC log class that logs requests and responses to a Python logger,
+    as info-level messages.
+
+    If no logger is provided, the class logger is used, with the name
+    "web3client.middlewares.RpcLog".
+
+    Subclasses can override the ``format_request`` and ``format_response``
+    methods to customize format of the logger messages.
+    """
+
+    def __init__(
+        self,
+        rpc_whitelist: Collection[str] = None,
+        fetch_tx_data: bool = False,
+        fetch_tx_receipt: bool = False,
+        decode_tx_data: bool = True,
+        logger: logging.Logger = None,
+    ) -> None:
+        super().__init__(rpc_whitelist, fetch_tx_data, fetch_tx_receipt, decode_tx_data)
+        self.logger = logger or self.class_logger
+
+    @override
+    def log_request(
+        self, method: RPCEndpoint, params: Any, w3: Web3, tx_data: TxData
+    ) -> None:
+        self.logger.info(self.format_request(method, params, tx_data))
+
+    @override
+    def log_response(
+        self,
+        method: RPCEndpoint,
+        params: Any,
+        w3: Web3,
+        response: RPCResponse,
+        tx_data: TxData,
+        tx_receipt: TxReceipt,
+    ) -> None:
+        self.logger.info(
+            self.format_response(method, params, response, tx_data, tx_receipt)
+        )
+
+    def format_request(self, method: RPCEndpoint, params: Any, tx_data: TxData) -> str:
+        """Return the log message for a request"""
+        msg = f"RPC request: Method: {method}, Params: {params}"
+        if tx_data is not None:
+            msg += f", Transaction data: {tx_data}"
+        return msg
+
+    def format_response(
+        self,
+        method: RPCEndpoint,
+        params: Any,
+        response: RPCResponse,
+        tx_data: TxData,
+        tx_receipt: TxReceipt,
+    ) -> str:
+        """Return the log message for a response"""
+        msg = f"RPC response: Method: {method}, Params: {params}, Response: {response}"
+        if tx_data is not None:
+            msg += f", Transaction data: {tx_data}"
+        if tx_receipt is not None:
+            msg += f", Transaction receipt: {tx_receipt}"
+        return msg
 
 
 class MemoryLog(BaseRpcLog):

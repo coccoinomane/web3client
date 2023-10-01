@@ -2,7 +2,7 @@
 
 # To do
 
-- Log to logger
+- PythonLog constructor with presets
 
 # Backlog
 
