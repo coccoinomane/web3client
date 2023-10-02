@@ -4,6 +4,8 @@ using eth_subscribe
 """
 import asyncio
 
+from web3.types import TxData
+
 from web3factory.factory import make_client
 from web3factory.networks import supported_networks
 
@@ -14,7 +16,7 @@ ws_rpc = input("WS RPC: ") or None
 client = make_client(network, node_uri=ws_rpc)
 
 
-async def callback(tx: str) -> None:
+async def callback(tx: str, subscription_type: str, tx_data: TxData) -> None:
     print(f"Pending tx: {tx}")
     # Process transaction as you see fit...
     await asyncio.sleep(3)
