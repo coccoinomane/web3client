@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import inspect
-import logging
 import uuid
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Collection, Dict, List, Self, Union
+from logging import Logger, getLogger
+from typing import Any, Callable, Dict, List, Self, Union
 
 from typing_extensions import Literal, override
 from web3 import Web3
@@ -105,7 +105,8 @@ class ResponseEntry(RpcEntry):
 
 
 class BaseRpcLog(ABC):
-    """Class to log RPC requests and responses.
+    """
+    Class to log RPC requests and responses.
 
     The class is meant to be used in a web3.py Middleware.  Subclasses can
     override the following methods:
@@ -124,11 +125,11 @@ class BaseRpcLog(ABC):
         called.  By default, all responses are logged.
     """
 
-    class_logger = logging.getLogger("web3client.middlewares.RpcLog")
+    class_logger = getLogger("web3client.middlewares.RpcLog")
 
     def __init__(
         self,
-        rpc_whitelist: Collection[str] = None,
+        rpc_whitelist: List[str] = None,
         fetch_tx_data: bool = False,
         fetch_tx_receipt: bool = False,
         decode_tx_data: bool = True,
@@ -196,7 +197,8 @@ class BaseRpcLog(ABC):
         self.log_request(entry)
 
     def log_request(self, entry: RequestEntry) -> None:
-        """Log a request.  Meant to be overridden by subclasses.
+        """
+        Log a request.  Meant to be overridden by subclasses.
 
         The tx_data parameter is passed only if (1) the request is a
         transaction-related request, and (2) the instance has
@@ -249,7 +251,8 @@ class BaseRpcLog(ABC):
         self.log_response(entry)
 
     def log_response(self, entry: ResponseEntry) -> None:
-        """Log a response.  Meant to be overridden by subclasses.
+        """
+        Log a response.  Meant to be overridden by subclasses.
 
         The tx_data and tx_receipt parameters are passed only if (1) the request
         was eth_sendRawTransaction, (2) the instance has self.fetch_tx_data=True
@@ -268,23 +271,38 @@ class BaseRpcLog(ABC):
 
 
 class PythonLog(BaseRpcLog):
-    """An RPC log class that logs requests and responses to a Python logger,
-    as info-level messages.
-
-    If no logger is provided, the class logger is used, with the name
-    "web3client.middlewares.RpcLog".
+    """
+    An RPC log class that logs requests and responses to a Python logger, as
+    info-level messages.
 
     Subclasses can override the ``format_request`` and ``format_response``
     methods to customize the format of the logged messages.
+
+    If no logger is provided, the class logger is used, with the name
+    "web3client.middlewares.RpcLog". IMPORTANT: The level of the logger must be
+    set to INFO or lower for the messages to be logged.
+
+    To configure the way log messages are shown, use the standard Python logging
+    configuration.  For example, to log to file with timestamp:
+
+        import logging
+        logger = logging.getLogger("web3client.middlewares.RpcLog")
+        logger.setLevel(logging.INFO)
+        fh = logging.FileHandler("rpc.log")
+        fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        logger.addHandler(fh)
+
+    More examples here:
+    https://web3py.readthedocs.io/en/stable/examples.html#adjusting-log-levels
     """
 
     def __init__(
         self,
-        rpc_whitelist: Collection[str] = None,
+        rpc_whitelist: List[str] = None,
         fetch_tx_data: bool = False,
         fetch_tx_receipt: bool = False,
         decode_tx_data: bool = True,
-        logger: logging.Logger = None,
+        logger: Logger = None,
     ) -> None:
         super().__init__(rpc_whitelist, fetch_tx_data, fetch_tx_receipt, decode_tx_data)
         self.logger = logger or self.class_logger
@@ -327,7 +345,7 @@ class PythonLog(BaseRpcLog):
 
 class MemoryLog(BaseRpcLog):
     """An RPC log class that keeps track of requests and responses in the
-    self.entries internal attribute."""
+    self.entries internal attribute"""
 
     entries: List[Union[RequestEntry, ResponseEntry]]
 
@@ -369,10 +387,10 @@ class MemoryLog(BaseRpcLog):
 """
 
 
-def construct_rpc_log_middleware(rpc_log: BaseRpcLog) -> Middleware:
+def construct_generic_rpc_log_middleware(rpc_log: BaseRpcLog) -> Middleware:
     """
-    Constructs a middleware which logs requests and/or responses based on the
-    request ``method`` and ``params``.
+    Constructs a middleware which logs RPC requests and/or responses,
+    based on the passed RPC log instance.
 
     :param rpc_log: A instance of an RPC log class derived from ``BaseRpcLog``.
     """
@@ -405,3 +423,39 @@ def construct_rpc_log_middleware(rpc_log: BaseRpcLog) -> Middleware:
         return middleware
 
     return log_middleware
+
+
+def construct_tx_rpc_log_middleware(
+    logger: Logger = None, fetch_tx_data: bool = False, fetch_tx_receipt: bool = False
+) -> Middleware:
+    """
+    Return a middleware that logs transactions sent to the blockchain.
+
+    :param logger: A Python logger instance.  If None, will use the logger
+        'web3client.middlewares.RpcLog'
+    :param fetch_tx_data: If True, the transaction data will be fetched and
+        logged
+    :param fetch_tx_receipt: If True, the transaction receipt will be fetched
+        and logged
+    """
+    rpc_log = PythonLog(
+        rpc_whitelist=["eth_sendRawTransaction"],
+        fetch_tx_data=fetch_tx_data,
+        fetch_tx_receipt=fetch_tx_receipt,
+        logger=logger,
+    )
+    return construct_generic_rpc_log_middleware(rpc_log)
+
+
+tx_rpc_log_middleware = construct_tx_rpc_log_middleware()
+"""A middleware that logs transactions sent to the blockchain.
+
+To configure the type of logging, use `logging.getLogger("web3client.middlewares.RpcLog")`.
+
+For example, to log to file:
+    
+    import logging
+    logger = logging.getLogger("web3client.middlewares.RpcLog")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.FileHandler("rpc.log"))
+"""

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 from pytest import LogCaptureFixture
@@ -15,7 +16,8 @@ from web3client.middlewares.rpc_log_middleware import (
     ResponseEntry,
     RPCEndpoint,
     RPCResponse,
-    construct_rpc_log_middleware,
+    construct_generic_rpc_log_middleware,
+    tx_rpc_log_middleware,
 )
 
 
@@ -53,7 +55,7 @@ def test_rpc_log_middleware_memory_log_send(
     """Send ETH and check that the internal log contains the request and
     response"""
     log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
-    alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    alice_base_client.w3.middleware_onion.add(construct_generic_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 2
     # Extract log entries
@@ -86,7 +88,7 @@ def test_rpc_log_middleware_memory_log_estimate_and_send(
     """Send ETH and check that the internal log contains the request and
     response, for both the eth_estimateGas and eth_sendRawTransaction methods"""
     log = MemoryLog(rpc_whitelist=["eth_estimateGas", "eth_sendRawTransaction"])
-    alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    alice_base_client.w3.middleware_onion.add(construct_generic_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 4
     # Extract log entries
@@ -112,7 +114,7 @@ def test_rpc_log_middleware_memory_log_empty_whitelist(
     """Send ETH and check that the internal log is empty if the whitelist is
     None"""
     log = MemoryLog(rpc_whitelist=[])
-    alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    alice_base_client.w3.middleware_onion.add(construct_generic_rpc_log_middleware(log))
     alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 0
 
@@ -125,7 +127,9 @@ def test_rpc_log_middleware_memory_log_decode_raw(
     """Send an ETH transfer and a token transfer, and check that the requests
     are included in the log entries with their decoded tx_data"""
     log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
-    alice_erc20_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    alice_erc20_client.w3.middleware_onion.add(
+        construct_generic_rpc_log_middleware(log)
+    )
     # Send ETH transfer.  This will trigger an eth_estimateGas request
     tx_hash_eth = alice_erc20_client.send_eth_in_wei(bob.address, 10**18)
     # Send a token transfer.  This will trigger an eth_estimateGas request
@@ -167,7 +171,9 @@ def test_rpc_log_middleware_memory_log_decode_estimate_gas(
     """Estimate gas spent for an ETH transfer and a token transfer, and check
     that the requests are included in the log entries with their decoded tx_data"""
     log = MemoryLog(rpc_whitelist=["eth_estimateGas"])
-    alice_erc20_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    alice_erc20_client.w3.middleware_onion.add(
+        construct_generic_rpc_log_middleware(log)
+    )
     # Send ETH transfer.  This will trigger an eth_estimateGas request
     alice_erc20_client.send_eth_in_wei(bob.address, 10**18)
     # Send a token transfer.  This will trigger an eth_estimateGas request
@@ -208,7 +214,9 @@ def test_rpc_log_middleware_memory_log_decode_call(
     """Simulate an ETH transfer using eth_call, and check that the requests are
     included in the log entries with their decoded tx_data"""
     log = MemoryLog(rpc_whitelist=["eth_call"])
-    alice_erc20_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    alice_erc20_client.w3.middleware_onion.add(
+        construct_generic_rpc_log_middleware(log)
+    )
     # Simulate a token transfer.  This will trigger an eth_estimateGas request
     alice_erc20_client.functions.transfer(bob.address, 10**18).call(),
     # Check that the tx was logged
@@ -244,7 +252,7 @@ def test_rpc_log_middleware_memory_log_fetch(
         fetch_tx_data=True,
         fetch_tx_receipt=True,
     )
-    alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
+    alice_base_client.w3.middleware_onion.add(construct_generic_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
     # Check tx response
     tx_responses = log.get_tx_responses()
@@ -256,6 +264,28 @@ def test_rpc_log_middleware_memory_log_fetch(
     tx_receipt = tx_responses[0].tx_receipt
     assert Web3.to_hex(tx_receipt["transactionHash"]) == tx_hash
     assert type(tx_receipt["gasUsed"]) is int
+
+
+@pytest.mark.local
+def test_rpc_log_middleware_tx_rpc_log_middleware(
+    alice_base_client: BaseClient, bob: ape.api.AccountAPI, tmp_path: Path
+) -> None:
+    # Set logger so that it prints to file all INFO messages
+    file = tmp_path / "rpc.log"
+    logger = logging.getLogger("web3client.middlewares.RpcLog")
+    logger.setLevel(logging.INFO)
+    fh = logging.FileHandler(file.resolve())
+    fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+    logger.addHandler(fh)
+    # Add tx_rpc_log_middleware to the client
+    alice_base_client.w3.middleware_onion.add(tx_rpc_log_middleware)
+    # Send ETH
+    alice_base_client.send_eth_in_wei(bob.address, 10**18)
+    # Check that the log file contains the request and response
+    assert file.exists(), f"file '{file}' not found"
+    content = file.read_text()
+    assert "RPC request" in content
+    assert "RPC response" in content
 
 
 #   _   _          _   _
