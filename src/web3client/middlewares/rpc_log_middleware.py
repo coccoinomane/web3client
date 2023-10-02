@@ -1,4 +1,5 @@
 import logging
+import uuid
 from abc import ABC
 from datetime import datetime
 from typing import Any, Callable, Collection, List
@@ -48,8 +49,7 @@ class BaseRpcLog(ABC):
         fetch_tx_receipt: bool = False,
         decode_tx_data: bool = True,
     ) -> None:
-        """Constructor
-
+        """
         :param rpc_whitelist: A list of RPC methods to log.  If None, all
             requests and responses will be logged.
         :param fetch_tx_data: If True, the transaction data will be fetched
@@ -73,15 +73,19 @@ class BaseRpcLog(ABC):
         """Initialization function called in the constructor"""
         pass
 
-    def should_log_request(self, method: RPCEndpoint, params: Any, w3: Web3) -> bool:
+    def should_log_request(
+        self, id: str, method: RPCEndpoint, params: Any, w3: Web3
+    ) -> bool:
         """Whether a request should be logged or not"""
         if self.rpc_whitelist is None:
             return True
         return method in self.rpc_whitelist
 
-    def handle_request(self, method: RPCEndpoint, params: Any, w3: Web3) -> None:
+    def handle_request(
+        self, id: str, method: RPCEndpoint, params: Any, w3: Web3
+    ) -> None:
         """Receive a request, pre-process it, and pass it to the logging
-        function"""
+        function.  Use the ID to match the response to the request."""
         tx_data = None
         try:
             if self.decode_tx_data:
@@ -95,10 +99,10 @@ class BaseRpcLog(ABC):
             self.class_logger.warning(f"Could not decode call to '{method}'")
 
         # Call logging function
-        self.log_request(method, params, w3, tx_data)
+        self.log_request(id, method, params, w3, tx_data)
 
     def log_request(
-        self, method: RPCEndpoint, params: Any, w3: Web3, tx_data: TxData
+        self, id: str, method: RPCEndpoint, params: Any, w3: Web3, tx_data: TxData
     ) -> None:
         """Log a request.  Meant to be overridden by subclasses.
 
@@ -109,7 +113,7 @@ class BaseRpcLog(ABC):
         pass
 
     def should_log_response(
-        self, method: RPCEndpoint, params: Any, w3: Web3, response: RPCResponse
+        self, id: str, method: RPCEndpoint, params: Any, w3: Web3, response: RPCResponse
     ) -> bool:
         """Whether a response should be logged or not"""
         if self.rpc_whitelist is None:
@@ -117,10 +121,10 @@ class BaseRpcLog(ABC):
         return method in self.rpc_whitelist
 
     def handle_response(
-        self, method: RPCEndpoint, params: Any, w3: Web3, response: RPCResponse
+        self, id: str, method: RPCEndpoint, params: Any, w3: Web3, response: RPCResponse
     ) -> None:
         """Receive a response, pre-process it, and pass it to the logging
-        function"""
+        function.  Use the ID to match the response to the request."""
         ok = is_rpc_response_ok(response)
         # Fetch tx data if requested
         tx_data = None
@@ -131,10 +135,11 @@ class BaseRpcLog(ABC):
         if ok and self.fetch_tx_receipt and method == "eth_sendRawTransaction":
             tx_receipt = w3.eth.wait_for_transaction_receipt(response["result"])
         # Call logging function
-        self.log_response(method, params, w3, response, tx_data, tx_receipt)
+        self.log_response(id, method, params, w3, response, tx_data, tx_receipt)
 
     def log_response(
         self,
+        id: str,
         method: RPCEndpoint,
         params: Any,
         w3: Web3,
@@ -175,13 +180,14 @@ class PythonLog(BaseRpcLog):
 
     @override
     def log_request(
-        self, method: RPCEndpoint, params: Any, w3: Web3, tx_data: TxData
+        self, id: str, method: RPCEndpoint, params: Any, w3: Web3, tx_data: TxData
     ) -> None:
-        self.logger.info(self.format_request(method, params, tx_data))
+        self.logger.info(self.format_request(id, method, params, tx_data))
 
     @override
     def log_response(
         self,
+        id: str,
         method: RPCEndpoint,
         params: Any,
         w3: Web3,
@@ -190,18 +196,21 @@ class PythonLog(BaseRpcLog):
         tx_receipt: TxReceipt,
     ) -> None:
         self.logger.info(
-            self.format_response(method, params, response, tx_data, tx_receipt)
+            self.format_response(id, method, params, response, tx_data, tx_receipt)
         )
 
-    def format_request(self, method: RPCEndpoint, params: Any, tx_data: TxData) -> str:
+    def format_request(
+        self, id: str, method: RPCEndpoint, params: Any, tx_data: TxData
+    ) -> str:
         """Return the log message for a request"""
-        msg = f"RPC request: Method: {method}, Params: {params}"
+        msg = f"RPC request: Id: {id}, Method: {method}, Params: {params}"
         if tx_data is not None:
             msg += f", Transaction data: {tx_data}"
         return msg
 
     def format_response(
         self,
+        id: str,
         method: RPCEndpoint,
         params: Any,
         response: RPCResponse,
@@ -209,7 +218,7 @@ class PythonLog(BaseRpcLog):
         tx_receipt: TxReceipt,
     ) -> str:
         """Return the log message for a response"""
-        msg = f"RPC response: Method: {method}, Params: {params}, Response: {response}"
+        msg = f"RPC response: Id: {id}, Method: {method}, Params: {params}, Response: {response}"
         if tx_data is not None:
             msg += f", Transaction data: {tx_data}"
         if tx_receipt is not None:
@@ -224,6 +233,7 @@ class MemoryLog(BaseRpcLog):
     class Entry(TypedDict):
         """Type for a memory log entry"""
 
+        id: str
         type: Literal["request", "response"]
         timestamp: datetime
         method: str
@@ -256,10 +266,11 @@ class MemoryLog(BaseRpcLog):
 
     @override
     def log_request(
-        self, method: RPCEndpoint, params: Any, w3: Web3, tx_data: TxData
+        self, id: str, method: RPCEndpoint, params: Any, w3: Web3, tx_data: TxData
     ) -> None:
         self.entries.append(
             {
+                "id": id,
                 "type": "request",
                 "timestamp": datetime.now(),
                 "method": method,
@@ -271,6 +282,7 @@ class MemoryLog(BaseRpcLog):
     @override
     def log_response(
         self,
+        id: str,
         method: RPCEndpoint,
         params: Any,
         w3: Web3,
@@ -280,6 +292,7 @@ class MemoryLog(BaseRpcLog):
     ) -> None:
         self.entries.append(
             {
+                "id": id,
                 "type": "response",
                 "timestamp": datetime.now(),
                 "method": method,
@@ -291,7 +304,7 @@ class MemoryLog(BaseRpcLog):
         )
 
 
-def construct_rpc_log_middleware(log: BaseRpcLog) -> Middleware:
+def construct_rpc_log_middleware(rpc_log: BaseRpcLog) -> Middleware:
     """
     Constructs a middleware which logs requests and/or responses based on the
     request ``method`` and ``params``.
@@ -303,11 +316,12 @@ def construct_rpc_log_middleware(log: BaseRpcLog) -> Middleware:
         make_request: Callable[[RPCEndpoint, Any], RPCResponse], w3: Web3
     ) -> Callable[[RPCEndpoint, Any], RPCResponse]:
         def middleware(method: RPCEndpoint, params: Any) -> RPCResponse:
-            if log.should_log_request(method, params, w3):
-                log.handle_request(method, params, w3)
+            request_id = uuid.uuid4().hex
+            if rpc_log.should_log_request(request_id, method, params, w3):
+                rpc_log.handle_request(request_id, method, params, w3)
             response = make_request(method, params)
-            if log.should_log_response(method, params, w3, response):
-                log.handle_response(method, params, w3, response)
+            if rpc_log.should_log_response(request_id, method, params, w3, response):
+                rpc_log.handle_response(request_id, method, params, w3, response)
             return response
 
         return middleware

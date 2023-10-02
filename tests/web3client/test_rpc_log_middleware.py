@@ -228,10 +228,12 @@ def test_rpc_log_middleware_memory_log_fetch(
 def test_unit_rpc_log_middleware_memory_log() -> None:
     """Unit test for the ``MemoryLog`` class"""
     # Arrange
+    request_id = "whatever"
     method = RPCEndpoint("test_method")
     params = {"param1": "value1", "param2": "value2"}
     response = RPCResponse(result="test_result")
     memory_log_entry: MemoryLog.Entry = {
+        "id": request_id,
         "method": method,
         "params": params,
         "response": response,
@@ -242,10 +244,11 @@ def test_unit_rpc_log_middleware_memory_log() -> None:
 
     # Act
     memory_log = MemoryLog()
-    memory_log.log_response(method, params, w3, response, None, None)
+    memory_log.log_response(request_id, method, params, w3, response, None, None)
 
     # Assert
     assert len(memory_log.entries) == 1
+    assert memory_log.entries[0]["id"] == memory_log_entry["id"]
     assert memory_log.entries[0]["method"] == memory_log_entry["method"]
     assert memory_log.entries[0]["params"] == memory_log_entry["params"]
     assert memory_log.entries[0]["response"] == memory_log_entry["response"]
@@ -256,6 +259,7 @@ def test_unit_rpc_log_middleware_memory_log() -> None:
 def test_unit_rpc_log_middleware_python_log(caplog: LogCaptureFixture) -> None:
     """Unit test for the ``PythonLog`` class"""
     # Arrange
+    id = "whatever"
     logger = logging.getLogger("test_logger")
     logger.setLevel(logging.INFO)
     method = RPCEndpoint("test_method")
@@ -265,8 +269,8 @@ def test_unit_rpc_log_middleware_python_log(caplog: LogCaptureFixture) -> None:
 
     # Act
     python_log = PythonLog(logger=logger)
-    python_log.log_request(method, params, w3, None)
-    python_log.log_response(method, params, w3, response, None, None)
+    python_log.log_request(id, method, params, w3, None)
+    python_log.log_response(id, method, params, w3, response, None, None)
 
     # Get all info records in `test_logger` log
     records = [
