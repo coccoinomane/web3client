@@ -9,13 +9,40 @@ import ape
 from web3client.base_client import BaseClient
 from web3client.erc20_client import Erc20Client
 from web3client.middlewares.rpc_log_middleware import (
-    LogEntry,
     MemoryLog,
     PythonLog,
+    RequestEntry,
+    ResponseEntry,
     RPCEndpoint,
     RPCResponse,
     construct_rpc_log_middleware,
 )
+
+
+@pytest.fixture
+def request_entry() -> RequestEntry:
+    return RequestEntry(
+        id="whatever",
+        method=RPCEndpoint("test_method"),
+        params={"param1": "value1", "param2": "value2"},
+        timestamp=datetime.now(),
+        type="request",
+        w3=Web3(),
+    )
+
+
+@pytest.fixture
+def response_entry() -> ResponseEntry:
+    return ResponseEntry(
+        id="whatever",
+        method=RPCEndpoint("test_method"),
+        params={"param1": "value1", "param2": "value2"},
+        response=RPCResponse(result="test_result"),
+        timestamp=datetime.now(),
+        type="response",
+        elapsed=10,
+        w3=Web3(),
+    )
 
 
 @pytest.mark.local
@@ -29,18 +56,26 @@ def test_rpc_log_middleware_memory_log_send(
     alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 2
+    # Extract log entries
+    logged_requests = log.get_requests()
+    logged_responses = log.get_responses()
+    assert len(logged_requests) == 1
+    assert len(logged_responses) == 1
+    logged_request = logged_requests[0]
+    logged_response = logged_responses[0]
     # Check first log entry - the request
-    assert log.entries[0]["type"] == "request"
-    assert log.entries[0]["method"] == "eth_sendRawTransaction"
-    assert type(log.entries[0]["params"][0]) is str
-    assert log.entries[0]["params"][0].startswith("0x")
-    assert isinstance(log.entries[0]["timestamp"], datetime)
+    assert logged_request.type == "request"
+    assert logged_request.method == "eth_sendRawTransaction"
+    assert type(logged_request.params[0]) is str
+    assert logged_request.params[0].startswith("0x")
+    assert isinstance(logged_request.timestamp, datetime)
     # Check second log entry - the response
-    assert log.entries[1]["type"] == "response"
-    assert log.entries[1]["method"] == log.entries[0]["method"]
-    assert log.entries[1]["params"] == log.entries[0]["params"]
-    assert log.entries[1]["timestamp"] > log.entries[0]["timestamp"]
-    assert log.entries[1]["response"]["result"] == tx_hash
+    assert logged_response.type == "response"
+    assert logged_response.method == log.entries[0].method
+    assert logged_response.params == log.entries[0].params
+    assert logged_response.timestamp > log.entries[0].timestamp
+    assert logged_response.response["result"] == tx_hash
+    assert logged_response.elapsed > 0
 
 
 @pytest.mark.local
@@ -54,16 +89,19 @@ def test_rpc_log_middleware_memory_log_estimate_and_send(
     alice_base_client.w3.middleware_onion.add(construct_rpc_log_middleware(log))
     tx_hash = alice_base_client.send_eth_in_wei(bob.address, 10**18)
     assert len(log.entries) == 4
-    # estimate gas request
-    assert log.entries[0]["method"] == "eth_estimateGas"
-    assert type(log.entries[0]["params"][0]) is dict
-    assert log.entries[0]["params"][0].keys() == {"from", "to", "value"}
-    # estimate gas response
-    assert int(log.entries[1]["response"]["result"], 16) > 0
-    # send raw transaction request
-    assert log.entries[2]["method"] == "eth_sendRawTransaction"
-    # send raw transaction response
-    assert log.entries[3]["response"]["result"] == tx_hash
+    # Extract log entries
+    requests = log.get_requests()
+    responses = log.get_responses()
+    # Estimate gas request
+    assert requests[0].method == "eth_estimateGas"
+    assert type(requests[0].params[0]) is dict
+    assert requests[0].params[0].keys() == {"from", "to", "value"}
+    # Estimate gas response
+    assert int(responses[0].response["result"], 16) > 0
+    # Send raw transaction request
+    assert requests[1].method == "eth_sendRawTransaction"
+    # Send raw transaction response
+    assert responses[1].response["result"] == tx_hash
 
 
 @pytest.mark.local
@@ -96,13 +134,13 @@ def test_rpc_log_middleware_memory_log_decode_raw(
     tx_requests = log.get_tx_requests()
     assert len(tx_requests) == 2
     # Check decoding for the ETH transfer
-    tx_data_eth = tx_requests[0]["tx_data"]
+    tx_data_eth = tx_requests[0].tx_data
     assert Web3.to_hex(tx_data_eth["hash"]) == tx_hash_eth
     assert tx_data_eth["from"] == alice_erc20_client.user_address
     assert tx_data_eth["to"] == bob.address
     assert int(tx_data_eth["value"]) == 10**18
     # Check decoding for the token transfer
-    tx_data_erc20 = tx_requests[1]["tx_data"]
+    tx_data_erc20 = tx_requests[1].tx_data
     assert Web3.to_hex(tx_data_erc20["hash"]) == tx_hash_erc20
     assert tx_data_erc20["from"] == alice_erc20_client.user_address
     assert tx_data_erc20["to"] == alice_erc20_client.contract_address
@@ -112,13 +150,13 @@ def test_rpc_log_middleware_memory_log_decode_raw(
     tx_responses = log.get_tx_responses()
     assert len(tx_responses) == 2
     # ... ETH transfer
-    assert tx_responses[0]["response"]["result"] == tx_hash_eth
-    assert tx_responses[0]["tx_data"] == None
-    assert tx_responses[0]["tx_receipt"] == None
+    assert tx_responses[0].response["result"] == tx_hash_eth
+    assert tx_responses[0].tx_data == None
+    assert tx_responses[0].tx_receipt == None
     # ... token transfer
-    assert tx_responses[1]["response"]["result"] == tx_hash_erc20
-    assert tx_responses[1]["tx_data"] == None
-    assert tx_responses[1]["tx_receipt"] == None
+    assert tx_responses[1].response["result"] == tx_hash_erc20
+    assert tx_responses[1].tx_data == None
+    assert tx_responses[1].tx_receipt == None
 
 
 @pytest.mark.local
@@ -138,13 +176,13 @@ def test_rpc_log_middleware_memory_log_decode_estimate_gas(
     tx_requests = log.get_tx_requests()
     assert len(tx_requests) == 2
     # Check decoding for the ETH transfer
-    tx_data_eth = tx_requests[0]["tx_data"]
+    tx_data_eth = tx_requests[0].tx_data
     assert tx_data_eth["from"] == alice_erc20_client.user_address
     assert tx_data_eth["to"] == bob.address
     assert not tx_data_eth["data"]
     assert int(tx_data_eth["value"]) == 10**18
     # Check decoding for the token transfer
-    tx_data_erc20 = tx_requests[1]["tx_data"]
+    tx_data_erc20 = tx_requests[1].tx_data
     assert tx_data_erc20["from"] == alice_erc20_client.user_address
     assert tx_data_erc20["to"] == alice_erc20_client.contract_address
     assert tx_data_erc20["data"]
@@ -153,13 +191,13 @@ def test_rpc_log_middleware_memory_log_decode_estimate_gas(
     tx_responses = log.get_tx_responses()
     assert len(tx_responses) == 2
     # ... ETH transfer
-    assert type(tx_responses[0]["response"]["result"]) is str
-    assert tx_responses[0]["response"]["result"].startswith("0x")
-    assert int(tx_responses[0]["response"]["result"], 16) > 0
+    assert type(tx_responses[0].response["result"]) is str
+    assert tx_responses[0].response["result"].startswith("0x")
+    assert int(tx_responses[0].response["result"], 16) > 0
     # ... token transfer
-    assert type(tx_responses[1]["response"]["result"]) is str
-    assert tx_responses[1]["response"]["result"].startswith("0x")
-    assert int(tx_responses[1]["response"]["result"], 16) > 0
+    assert type(tx_responses[1].response["result"]) is str
+    assert tx_responses[1].response["result"].startswith("0x")
+    assert int(tx_responses[1].response["result"], 16) > 0
 
 
 @pytest.mark.local
@@ -177,7 +215,7 @@ def test_rpc_log_middleware_memory_log_decode_call(
     tx_requests = log.get_tx_requests()
     assert len(tx_requests) == 1
     # Check that the outgoing eth_estimateGas request was correctly decoded
-    tx_data = tx_requests[0]["tx_data"]
+    tx_data = tx_requests[0].tx_data
     assert tx_data["from"] == alice_erc20_client.user_address
     assert tx_data["to"] == alice_erc20_client.contract_address
     assert tx_data["data"]
@@ -187,9 +225,9 @@ def test_rpc_log_middleware_memory_log_decode_call(
     # Check that the response is a True boolean
     tx_responses = log.get_tx_responses()
     assert len(tx_responses) == 1
-    assert type(tx_responses[0]["response"]["result"]) is str
+    assert type(tx_responses[0].response["result"]) is str
     assert (
-        tx_responses[0]["response"]["result"]
+        tx_responses[0].response["result"]
         == "0x0000000000000000000000000000000000000000000000000000000000000001"
     )
 
@@ -212,10 +250,10 @@ def test_rpc_log_middleware_memory_log_fetch(
     tx_responses = log.get_tx_responses()
     assert len(tx_responses) == 1
     # Check response tx_data
-    tx_data = tx_responses[0]["tx_data"]
+    tx_data = tx_responses[0].tx_data
     assert int(tx_data["value"]) == 10**18
     # Check response tx_receipt
-    tx_receipt = tx_responses[0]["tx_receipt"]
+    tx_receipt = tx_responses[0].tx_receipt
     assert Web3.to_hex(tx_receipt["transactionHash"]) == tx_hash
     assert type(tx_receipt["gasUsed"]) is int
 
@@ -226,52 +264,71 @@ def test_rpc_log_middleware_memory_log_fetch(
 #   \___/  |_||_| |_|  \__|
 
 
-def test_unit_rpc_log_middleware_memory_log() -> None:
+def test_unit_rpc_log_middleware_memory_log(
+    request_entry: RequestEntry,
+    response_entry: ResponseEntry,
+) -> None:
     """Unit test for the ``MemoryLog`` class"""
     # Arrange
-    request_id = "whatever"
-    method = RPCEndpoint("test_method")
-    params = {"param1": "value1", "param2": "value2"}
-    response = RPCResponse(result="test_result")
-    memory_log_entry: LogEntry = {
-        "id": request_id,
-        "method": method,
-        "params": params,
-        "response": response,
-        "timestamp": datetime.now(),
-        "type": "response",
-    }
-    w3 = Web3()
 
     # Act
     memory_log = MemoryLog()
-    memory_log.log_response(request_id, method, params, w3, response, None, None)
+    memory_log.handle_request(
+        id=request_entry.id,
+        method=RPCEndpoint(request_entry.method),
+        params=request_entry.params,
+        w3=request_entry.w3,
+    )
+    memory_log.handle_response(
+        id=response_entry.id,
+        method=RPCEndpoint(response_entry.method),
+        params=response_entry.params,
+        w3=response_entry.w3,
+        response=response_entry.response,
+        elapsed=response_entry.elapsed,
+    )
 
     # Assert
-    assert len(memory_log.entries) == 1
-    assert memory_log.entries[0]["id"] == memory_log_entry["id"]
-    assert memory_log.entries[0]["method"] == memory_log_entry["method"]
-    assert memory_log.entries[0]["params"] == memory_log_entry["params"]
-    assert memory_log.entries[0]["response"] == memory_log_entry["response"]
-    assert memory_log.entries[0]["timestamp"] > memory_log_entry["timestamp"]
-    assert memory_log.entries[0]["type"] == memory_log_entry["type"]
+    assert len(memory_log.entries) == 2
+    # ... request entry
+    logged_request = memory_log.get_requests()[0]
+    assert logged_request.id == request_entry.id
+    assert logged_request.method == request_entry.method
+    assert logged_request.params == request_entry.params
+    assert logged_request.timestamp > request_entry.timestamp
+    assert logged_request.type == request_entry.type
+    # ... response entry
+    logged_response = memory_log.get_responses()[0]
+    assert logged_response.id == response_entry.id
+    assert logged_response.method == response_entry.method
+    assert logged_response.params == response_entry.params
+    assert logged_response.response == response_entry.response
+    assert logged_response.timestamp > response_entry.timestamp
+    assert logged_response.type == response_entry.type
 
 
-def test_unit_rpc_log_middleware_python_log(caplog: LogCaptureFixture) -> None:
+def test_unit_rpc_log_middleware_python_log(
+    caplog: LogCaptureFixture,
+    request_entry: RequestEntry,
+    response_entry: ResponseEntry,
+) -> None:
     """Unit test for the ``PythonLog`` class"""
     # Arrange
-    id = "whatever"
+    entry = {
+        "id": "whatever",
+        "method": RPCEndpoint("test_method"),
+        "params": {"param1": "value1", "param2": "value2"},
+        "timestamp": datetime.now(),
+        "type": "request",
+        "w3": Web3(),
+    }
     logger = logging.getLogger("test_logger")
     logger.setLevel(logging.INFO)
-    method = RPCEndpoint("test_method")
-    params = {"param1": "value1", "param2": "value2"}
-    response = RPCResponse(result="test_result")
-    w3 = Web3()
 
     # Act
     python_log = PythonLog(logger=logger)
-    python_log.log_request(id, method, params, w3, None)
-    python_log.log_response(id, method, params, w3, response, None, None)
+    python_log.log_request(request_entry)
+    python_log.log_response(response_entry)
 
     # Get all info records in `test_logger` log
     records = [
