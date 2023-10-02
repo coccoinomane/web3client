@@ -11,5 +11,7 @@ ws_rpc = input("WS RPC: ") or None
 client = make_client(network, node_uri=ws_rpc)
 
 client.subscribe(
-    lambda block: print(f"New block: {block}"), subscription_type="newHeads", once=False
+    lambda block, _, __: print(f"New block: {block}"),
+    subscription_type="newHeads",
+    once=False,
 )

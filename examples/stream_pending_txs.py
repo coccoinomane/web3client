@@ -11,4 +11,4 @@ ws_rpc = input("WS RPC: ") or None
 
 client = make_client(network, node_uri=ws_rpc)
 
-client.subscribe(lambda tx: print(f"Pending tx: {tx}"), once=False)
+client.subscribe(lambda tx, _, __: print(f"Pending tx: {tx}"), once=False)

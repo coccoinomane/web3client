@@ -20,7 +20,32 @@ pip3 install -U web3client
 
 # Examples
 
-I am working on a tutorial, but in the meantime, you can find some examples
+- Stream pending transactions on the zkSync Era network:
+
+   ```python
+   from web3client.base_client import BaseClient
+   
+   client = BaseClient("wss://mainnet.era.zksync.io/ws")
+   client.subscribe(lambda tx, _, __: print(f"Pending tx: {tx}"))
+   ```
+
+- Send 1 ETH and 100 USDC to Unicef, using a dual client:
+   ```python
+   from web3client.dual_client import DualClient
+   
+   rpc = "https://cloudflare-eth.com"
+   private_key = "0x..."
+   unicef = "0xA59B29d7dbC9794d1e7f45123C48b2b8d0a34636"
+   USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+
+   usdc_client = DualClient(rpc, private_key=private_key, contract_address=USDC)
+   usdc_client.send_eth(unicef, 1)
+   usdc_client.transfer(unicef, 100)
+   ```
+
+# More examples
+
+Please find more examples
 
 - in the [examples folder](./examples), and
 - in the [tests folder](./tests).
