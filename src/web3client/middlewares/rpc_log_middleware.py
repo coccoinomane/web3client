@@ -425,6 +425,18 @@ def construct_generic_rpc_log_middleware(rpc_log: BaseRpcLog) -> Middleware:
     return log_middleware
 
 
+def construct_tx_rpc_log(
+    logger: Logger = None, fetch_tx_data: bool = False, fetch_tx_receipt: bool = False
+) -> PythonLog:
+    """Return a PythonLog that logs transactions sent to the blockchain"""
+    return PythonLog(
+        rpc_whitelist=["eth_sendRawTransaction"],
+        fetch_tx_data=fetch_tx_data,
+        fetch_tx_receipt=fetch_tx_receipt,
+        logger=logger,
+    )
+
+
 def construct_tx_rpc_log_middleware(
     logger: Logger = None, fetch_tx_data: bool = False, fetch_tx_receipt: bool = False
 ) -> Middleware:
@@ -438,24 +450,19 @@ def construct_tx_rpc_log_middleware(
     :param fetch_tx_receipt: If True, the transaction receipt will be fetched
         and logged
     """
-    rpc_log = PythonLog(
-        rpc_whitelist=["eth_sendRawTransaction"],
-        fetch_tx_data=fetch_tx_data,
-        fetch_tx_receipt=fetch_tx_receipt,
-        logger=logger,
+    rpc_log = construct_tx_rpc_log(
+        fetch_tx_data=fetch_tx_data, fetch_tx_receipt=fetch_tx_receipt, logger=logger
     )
     return construct_generic_rpc_log_middleware(rpc_log)
 
 
+tx_rpc_log = construct_tx_rpc_log()
+"""Instance that logs transactions sent to the blockchain, using the logger
+named "web3client.middlewares.RpcLog".  See docs of the PythonLog class for more
+details on how to customize the output and destination."""
+
+
 tx_rpc_log_middleware = construct_tx_rpc_log_middleware()
-"""A middleware that logs transactions sent to the blockchain.
-
-To configure the type of logging, use `logging.getLogger("web3client.middlewares.RpcLog")`.
-
-For example, to log to file:
-    
-    import logging
-    logger = logging.getLogger("web3client.middlewares.RpcLog")
-    logger.setLevel(logging.INFO)
-    logger.addHandler(logging.FileHandler("rpc.log"))
-"""
+"""A middleware that logs transactions sent to the blockchain.  See docs of
+the PythonLog class for more details on how to customize the output and
+destination."""

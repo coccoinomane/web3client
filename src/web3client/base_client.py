@@ -34,6 +34,10 @@ from websockets.client import connect
 
 from web3client.exceptions import TransactionTooExpensive, Web3ClientException
 from web3client.helpers.subscribe import parse_notification, subscribe_to_notification
+from web3client.middlewares.rpc_log_middleware import (
+    BaseRpcLog,
+    construct_generic_rpc_log_middleware,
+)
 from web3client.types import (
     AsyncSubscriptionCallback,
     SubscriptionCallback,
@@ -60,7 +64,7 @@ class BaseClient:
     contract_address: str = None | Address of smart contract (optional)
     abi: dict[str, Any] = None | ABI of smart contract; to read from a JSON file, use class method get_abi_json() (optional)
     middlewares: List[Middleware] = [] | Ordered list of web3.py middlewares to use (optional, default is no middlewares)
-
+    rpc_log: BaseRpcLog = None | An RPC log instance, used to log RPC calls (optional, default is no logging).  For example, use rpc_log=web3client.middlewares.rpc_log_middleware.tx_rpc_log to log only transactions.  For more details, see the docs of the rpc_log_middleware module.
 
     Derived attributes
     ------------------
@@ -82,6 +86,7 @@ class BaseClient:
     abi: dict[str, Any] = None
     contract_address: str = None
     middlewares: List[Middleware] = None
+    rpc_log: BaseRpcLog = None
 
     # Derived attributes
     w3: Web3
@@ -104,6 +109,7 @@ class BaseClient:
         contract_address: str = None,
         abi: dict[str, Any] = None,
         middlewares: List[Middleware] = [],
+        rpc_log: BaseRpcLog = None,
     ) -> None:
         # Set the w3 client
         self.set_provider(node_uri)
@@ -126,6 +132,8 @@ class BaseClient:
             self.set_contract(contract_address)
         if middlewares:
             self.set_middlewares(middlewares)
+        if rpc_log:
+            self.set_rpc_log(rpc_log)
 
         # Further initialization
         self.init()
@@ -175,6 +183,11 @@ class BaseClient:
         self.middlewares = middlewares
         for i, m in enumerate(middlewares):
             self.w3.middleware_onion.inject(m, layer=i)
+        return self
+
+    def set_rpc_log(self, rpc_log: BaseRpcLog) -> Self:
+        self.rpc_log = rpc_log
+        self.w3.middleware_onion.add(construct_generic_rpc_log_middleware(rpc_log))
         return self
 
     ####################
@@ -845,6 +858,7 @@ class BaseClient:
             contract_address=self.contract_address,
             abi=self.abi,
             middlewares=self.middlewares,
+            rpc_log=self.rpc_log,
         )
 
     @staticmethod
