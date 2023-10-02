@@ -96,7 +96,10 @@ class BaseClient:
         ```
     
     One can also log to file, or to a database.  For more details, see the docs of the
-    rpc_log_middleware module."""
+    rpc_log_middleware module.
+    
+    Please note that subclasses can define a class attribute rpc_logs to set a default
+    value for `rpc_logs` for all instances of the subclass."""
 
     # Derived attributes
     w3: Web3
