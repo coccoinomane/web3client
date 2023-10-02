@@ -20,6 +20,33 @@ TX_DATA_METHODS = ["eth_sendRawTransaction", "eth_call", "eth_estimateGas"]
 """RPC endpoints whose parameters can be mapped or decoded to a TxData object"""
 
 
+class LogEntry(TypedDict):
+    """Data associated with an RPC request-response pair"""
+
+    id: str
+    """Unique ID for the request-response pair.  Can be used to match the
+    request to the response."""
+    type: Literal["request", "response"]
+    """Whether the entry is for a request or a response"""
+    timestamp: datetime
+    """Refers to the time from when the request was sent and the response was
+    received.  It does not include the time spent in the middleware."""
+    method: str
+    """RPC method name"""
+    params: Any
+    """Parameters for the RPC method"""
+    response: NotRequired[RPCResponse]
+    """Response returned by the RPC method"""
+    tx_data: NotRequired[TxData]
+    """For transaction-related requests, the transaction data.  For requests,
+    this is the sent data.  For responses, this is the data fetched via
+    eth_getTransaction."""
+    tx_receipt: NotRequired[TxReceipt]
+    """For transaction-related requests, the transaction receipt.  For requests,
+    this is always None.  For responses, this is the data fetched via
+    eth_getTransactionReceipt. """
+
+
 class BaseRpcLog(ABC):
     """Class to log RPC requests and responses.
 
@@ -230,21 +257,9 @@ class MemoryLog(BaseRpcLog):
     """An RPC log class that keeps track of requests and responses in the
     self.entries internal attribute."""
 
-    class Entry(TypedDict):
-        """Type for a memory log entry"""
+    entries: List[LogEntry]
 
-        id: str
-        type: Literal["request", "response"]
-        timestamp: datetime
-        method: str
-        params: Any
-        response: NotRequired[RPCResponse]
-        tx_data: NotRequired[TxData]
-        tx_receipt: NotRequired[TxReceipt]
-
-    entries: List[Entry]
-
-    def get_tx_requests(self) -> List[Entry]:
+    def get_tx_requests(self) -> List[LogEntry]:
         """Returns the log entries of transaction-related requests"""
         return [
             e
@@ -252,7 +267,7 @@ class MemoryLog(BaseRpcLog):
             if e["type"] == "request" and e["method"] in TX_DATA_METHODS
         ]
 
-    def get_tx_responses(self) -> List[Entry]:
+    def get_tx_responses(self) -> List[LogEntry]:
         """Returns the log entries of transaction-related responses"""
         return [
             e

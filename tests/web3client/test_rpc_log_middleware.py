@@ -9,6 +9,7 @@ import ape
 from web3client.base_client import BaseClient
 from web3client.erc20_client import Erc20Client
 from web3client.middlewares.rpc_log_middleware import (
+    LogEntry,
     MemoryLog,
     PythonLog,
     RPCEndpoint,
@@ -232,7 +233,7 @@ def test_unit_rpc_log_middleware_memory_log() -> None:
     method = RPCEndpoint("test_method")
     params = {"param1": "value1", "param2": "value2"}
     response = RPCResponse(result="test_result")
-    memory_log_entry: MemoryLog.Entry = {
+    memory_log_entry: LogEntry = {
         "id": request_id,
         "method": method,
         "params": params,
