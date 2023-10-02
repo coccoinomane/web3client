@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 
 import ape
@@ -42,10 +44,35 @@ def test_base_client_clone(alice_base_client: BaseClient) -> None:
 
 @pytest.mark.local
 def test_base_client_rpc_logs(
-    alice_base_client: BaseClient, bob: ape.api.AccountAPI
+    accounts_keys: List[str], ape_chain_uri: str, bob: ape.api.AccountAPI
 ) -> None:
     rpc_log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
-    client = alice_base_client.clone().set_rpc_logs([rpc_log])
+    client = BaseClient(
+        node_uri=ape_chain_uri, private_key=accounts_keys[0], rpc_logs=[rpc_log]
+    )
+    tx_hash = client.send_eth_in_wei(bob.address.lower(), 10**18)
+    assert len(rpc_log.entries) == 2
+    assert len(rpc_log.get_requests()) == 1
+    assert len(rpc_log.get_responses()) == 1
+    request = rpc_log.get_requests()[0]
+    response = rpc_log.get_responses()[0]
+    assert request.method == "eth_sendRawTransaction"
+    assert response.method == "eth_sendRawTransaction"
+    assert response.response["result"] == tx_hash
+
+
+@pytest.mark.local
+def test_base_client_rpc_logs_class_defined(
+    accounts_keys: List[str], ape_chain_uri: str, bob: ape.api.AccountAPI
+) -> None:
+    rpc_log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
+
+    class BaseClientWithClassDefinedRpcLog(BaseClient):
+        rpc_logs = [rpc_log]
+
+    client = BaseClientWithClassDefinedRpcLog(
+        node_uri=ape_chain_uri, private_key=accounts_keys[0]
+    )
     tx_hash = client.send_eth_in_wei(bob.address.lower(), 10**18)
     assert len(rpc_log.entries) == 2
     assert len(rpc_log.get_requests()) == 1

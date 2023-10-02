@@ -148,8 +148,8 @@ class BaseClient:
             self.set_contract(contract_address)
         if middlewares:
             self.set_middlewares(middlewares)
-        if rpc_logs:
-            self.set_rpc_logs(rpc_logs)
+        if rpc_logs or self.__class__.rpc_logs:  # allow for class-defined rpc_logs
+            self.set_rpc_logs(rpc_logs or self.__class__.rpc_logs)
 
         # Further initialization
         self.init()
