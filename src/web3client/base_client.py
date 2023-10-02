@@ -34,6 +34,10 @@ from websockets.client import connect
 
 from web3client.exceptions import TransactionTooExpensive, Web3ClientException
 from web3client.helpers.subscribe import parse_notification, subscribe_to_notification
+from web3client.middlewares.rpc_log_middleware import (
+    BaseRpcLog,
+    construct_generic_rpc_log_middleware,
+)
 from web3client.types import (
     AsyncSubscriptionCallback,
     SubscriptionCallback,
@@ -48,50 +52,54 @@ class BaseClient:
 
     The client is a wrapper intended to make the Web3 library
     easier to use.
-
-    Attributes
-    ----------------------
-    node_uri: str | RPC node to use.  Set it to None for a uninitialized client.
-    chain_id: int = None | ID of the chain.  If not given, it will be inferred from the node.
-    tx_type: int = 2 | Type of transaction: 1 for pre-EIP-1599, 2 for EIP-1599. More details here > https://docs.infura.io/infura/networks/ethereum/concepts/transaction-types
-    private_key: str = None | Private key to use (optional)
-    max_priority_fee_in_gwei: float = 1 | Miner's tip, relevant only for type-2 transactions (optional, default is 1)
-    upper_limit_for_base_fee_in_gwei: float = inf | Raise an exception if baseFee is larger than this (optional, default is no limit)
-    contract_address: str = None | Address of smart contract (optional)
-    abi: dict[str, Any] = None | ABI of smart contract; to read from a JSON file, use class method get_abi_json() (optional)
-    middlewares: List[Middleware] = [] | Ordered list of web3.py middlewares to use (optional, default is no middlewares)
-
-
-    Derived attributes
-    ------------------
-    w3: Web3 = None | Web3.py client
-    account: LocalAccount = None | Account object for the user
-    user_address: str = None | Address of the user
-    contract: Contract = None | Contract object of web3.py
-    functions: ContractFunctions = None | ContractFunctions object of web3.py
     """
 
     # Attributes that can be set in the constructor or
     # overridden by subclasses
     node_uri: str = None
+    """RPC node to use.  Set it to None for a uninitialized client."""
     chain_id: int = None
+    """ID of the chain.  If not given, it will be inferred from the node"""
     tx_type: int = None
+    """Type of transaction. type=2 means an EIP-1599 transaction. More details here > https://docs.infura.io/infura/networks/ethereum/concepts/transaction-types"""
     private_key: str = None
+    """Private key to use to send transactions"""
     max_priority_fee_in_gwei: float = None
+    """"Miner's tip, relevant only for type-2 transactions (default is 1)"""
     upper_limit_for_base_fee_in_gwei: float = None
+    """Raise an exception if baseFee is larger than this (default is no limit)"""
     abi: dict[str, Any] = None
+    """ABI of smart contract; to read from a JSON file, use class method get_abi_json()"""
     contract_address: str = None
+    """Address of smart contract"""
     middlewares: List[Middleware] = None
+    """Ordered list of web3.py middlewares to use"""
+    rpc_log: BaseRpcLog = None
+    """An RPC log instance, used to log RPC calls.  For example, this code will log in memory all transactions:
+        
+        rpc_log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
+        client = BaseClient(node_uri="http://localhost:8545", rpc_log=rpc_log)
+        client.send_eth("0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae", 1)
+        print(rpc.log.entries) # will contain both the request we sent and the response we received
+    
+    One can also log to file, or to a database.  For more details, see the docs of the
+    rpc_log_middleware module."""
 
     # Derived attributes
     w3: Web3
+    """Web3.py client"""
     account: LocalAccount
+    """Account object of the user"""
     user_address: str
+    """Address of the user"""
     contract: Contract
+    """Contract object of web3.py"""
     functions: ContractFunctions
+    """ContractFunctions object of web3.py"""
 
     # Class attributes
     abi_dir: Union[Path, str] = Path(dirname(realpath(__file__))) / "abi"
+    """Directory where to find the ABI json files"""
 
     def __init__(
         self,
@@ -104,6 +112,7 @@ class BaseClient:
         contract_address: str = None,
         abi: dict[str, Any] = None,
         middlewares: List[Middleware] = [],
+        rpc_log: BaseRpcLog = None,
     ) -> None:
         # Set the w3 client
         self.set_provider(node_uri)
@@ -126,6 +135,8 @@ class BaseClient:
             self.set_contract(contract_address)
         if middlewares:
             self.set_middlewares(middlewares)
+        if rpc_log:
+            self.set_rpc_log(rpc_log)
 
         # Further initialization
         self.init()
@@ -175,6 +186,11 @@ class BaseClient:
         self.middlewares = middlewares
         for i, m in enumerate(middlewares):
             self.w3.middleware_onion.inject(m, layer=i)
+        return self
+
+    def set_rpc_log(self, rpc_log: BaseRpcLog) -> Self:
+        self.rpc_log = rpc_log
+        self.w3.middleware_onion.add(construct_generic_rpc_log_middleware(rpc_log))
         return self
 
     ####################
@@ -845,6 +861,7 @@ class BaseClient:
             contract_address=self.contract_address,
             abi=self.abi,
             middlewares=self.middlewares,
+            rpc_log=self.rpc_log,
         )
 
     @staticmethod

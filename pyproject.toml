@@ -34,6 +34,7 @@ dev = [
 test = "ape test tests --network ::foundry"
 publish_test = "pdm publish -r testpypi -u ${PDM_PUBLISH_TEST_USERNAME} -P ${PDM_PUBLISH_TEST_PASSWORD}"
 release = "gh release create v{args} dist/web3client-{args}.tar.gz dist/web3client-{args}-py3-none-any.whl --generate-notes"
+mypy = "mypy src tests"
 
 [project.entry-points.pytest11]
 web3test-ape = "web3test.ape.fixtures"
@@ -61,7 +62,7 @@ check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
 disallow_untyped_defs = true
-ignore_missing_imports = true
+ignore_missing_imports = false
 no_implicit_optional = true
 show_error_codes = true
 strict_equality = true

@@ -2,7 +2,7 @@
 
 # To do
 
-- Compound borrow
+- PythonLog constructor with presets
 
 # Backlog
 

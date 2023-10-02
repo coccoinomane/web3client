@@ -15,11 +15,13 @@ repos:
       - id: black
         name: black
 
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.5.1
-    hooks:
-    -   id: mypy
-        additional_dependencies: [mypy-extensions, types-setuptools, types-requests, typing_extensions]
+### For mypy, pre-commit ends up giving a different result than simply
+### running `.venv/bin/mypy src tests`. So, we disabled it.
+# -   repo: https://github.com/pre-commit/mirrors-mypy
+#     rev: v1.5.1
+#     hooks:
+#     -   id: mypy
+#         additional_dependencies: [mypy-extensions, types-setuptools, types-requests, typing_extensions, eth-typing]
 
 -   repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.10.1
