@@ -272,7 +272,7 @@ def test_rpc_log_middleware_tx_rpc_log_middleware(
 ) -> None:
     # Set logger so that it prints to file all INFO messages
     file = tmp_path / "rpc.log"
-    logger = logging.getLogger("web3client.middlewares.RpcLog")
+    logger = logging.getLogger("web3client.RpcLog")
     logger.setLevel(logging.INFO)
     fh = logging.FileHandler(file.resolve())
     fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))

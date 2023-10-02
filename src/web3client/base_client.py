@@ -74,13 +74,26 @@ class BaseClient:
     """Address of smart contract"""
     middlewares: List[Middleware] = None
     """Ordered list of web3.py middlewares to use"""
-    rpc_log: BaseRpcLog = None
-    """An RPC log instance, used to log RPC calls.  For example, this code will log in memory all transactions:
-        
-        rpc_log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
-        client = BaseClient(node_uri="http://localhost:8545", rpc_log=rpc_log)
+    rpc_logs: List[BaseRpcLog] = None
+    """Where to log RPC calls.
+    
+    To log all RPC call, set `rpc_logs=[PythonLog()]`.  This will make use of
+    the logger named 'web3client.RpcLog', with logLevel=INFO.  To log to a different
+    logger, specify it: `rpc_logs=[PythonLog(logger=logging.getLogger("my_logger"))]`.
+
+    To log only a specific RPC method, use the `rpc_whitelist` argument:
+    `rpc_logs=[PythonLog(rpc_whitelist=["eth_sendRawTransaction"])]`.
+
+    To save the log to a list, rather than sending it to a logger, please
+    use the MemoryLog() class.  This will make it possible to access the
+    logs from the code, e.g.:
+
+        ```
+        my_rpc_log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
+        client = BaseClient(node_uri="http://localhost:8545", rpc_logs=[my_rpc_log])
         client.send_eth("0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae", 1)
-        print(rpc.log.entries) # will contain both the request we sent and the response we received
+        print(rpc.log.entries) # will contain 2 entries: request & response
+        ```
     
     One can also log to file, or to a database.  For more details, see the docs of the
     rpc_log_middleware module."""
@@ -112,7 +125,7 @@ class BaseClient:
         contract_address: str = None,
         abi: dict[str, Any] = None,
         middlewares: List[Middleware] = [],
-        rpc_log: BaseRpcLog = None,
+        rpc_logs: List[BaseRpcLog] = [],
     ) -> None:
         # Set the w3 client
         self.set_provider(node_uri)
@@ -135,8 +148,8 @@ class BaseClient:
             self.set_contract(contract_address)
         if middlewares:
             self.set_middlewares(middlewares)
-        if rpc_log:
-            self.set_rpc_log(rpc_log)
+        if rpc_logs:
+            self.set_rpc_logs(rpc_logs)
 
         # Further initialization
         self.init()
@@ -188,9 +201,10 @@ class BaseClient:
             self.w3.middleware_onion.inject(m, layer=i)
         return self
 
-    def set_rpc_log(self, rpc_log: BaseRpcLog) -> Self:
-        self.rpc_log = rpc_log
-        self.w3.middleware_onion.add(construct_generic_rpc_log_middleware(rpc_log))
+    def set_rpc_logs(self, rpc_logs: List[BaseRpcLog]) -> Self:
+        self.rpc_logs = rpc_logs
+        for rpc_log in rpc_logs:
+            self.w3.middleware_onion.add(construct_generic_rpc_log_middleware(rpc_log))
         return self
 
     ####################
@@ -861,7 +875,7 @@ class BaseClient:
             contract_address=self.contract_address,
             abi=self.abi,
             middlewares=self.middlewares,
-            rpc_log=self.rpc_log,
+            rpc_logs=self.rpc_logs,
         )
 
     @staticmethod

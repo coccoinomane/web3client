@@ -41,11 +41,11 @@ def test_base_client_clone(alice_base_client: BaseClient) -> None:
 
 
 @pytest.mark.local
-def test_base_client_rpc_log(
+def test_base_client_rpc_logs(
     alice_base_client: BaseClient, bob: ape.api.AccountAPI
 ) -> None:
     rpc_log = MemoryLog(rpc_whitelist=["eth_sendRawTransaction"])
-    client = alice_base_client.clone().set_rpc_log(rpc_log)
+    client = alice_base_client.clone().set_rpc_logs([rpc_log])
     tx_hash = client.send_eth_in_wei(bob.address.lower(), 10**18)
     assert len(rpc_log.entries) == 2
     assert len(rpc_log.get_requests()) == 1

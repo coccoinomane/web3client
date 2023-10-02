@@ -125,7 +125,7 @@ class BaseRpcLog(ABC):
         called.  By default, all responses are logged.
     """
 
-    class_logger = getLogger("web3client.middlewares.RpcLog")
+    class_logger = getLogger("web3client.RpcLog")
 
     def __init__(
         self,
@@ -279,14 +279,14 @@ class PythonLog(BaseRpcLog):
     methods to customize the format of the logged messages.
 
     If no logger is provided, the class logger is used, with the name
-    "web3client.middlewares.RpcLog". IMPORTANT: The level of the logger must be
+    "web3client.RpcLog". IMPORTANT: The level of the logger must be
     set to INFO or lower for the messages to be logged.
 
     To configure the way log messages are shown, use the standard Python logging
     configuration.  For example, to log to file with timestamp:
 
         import logging
-        logger = logging.getLogger("web3client.middlewares.RpcLog")
+        logger = logging.getLogger("web3client.RpcLog")
         logger.setLevel(logging.INFO)
         fh = logging.FileHandler("rpc.log")
         fh.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
@@ -444,7 +444,7 @@ def construct_tx_rpc_log_middleware(
     Return a middleware that logs transactions sent to the blockchain.
 
     :param logger: A Python logger instance.  If None, will use the logger
-        'web3client.middlewares.RpcLog'
+        'web3client.RpcLog'
     :param fetch_tx_data: If True, the transaction data will be fetched and
         logged
     :param fetch_tx_receipt: If True, the transaction receipt will be fetched
@@ -458,7 +458,7 @@ def construct_tx_rpc_log_middleware(
 
 tx_rpc_log = construct_tx_rpc_log()
 """Instance that logs transactions sent to the blockchain, using the logger
-named "web3client.middlewares.RpcLog".  See docs of the PythonLog class for more
+named "web3client.RpcLog".  See docs of the PythonLog class for more
 details on how to customize the output and destination."""
 
 
