@@ -63,7 +63,7 @@ class RequestEntry(RpcEntry):
 
     type: Literal["request"]
     """Whether the entry is for a request or a response"""
-    tx_data: TxData = None
+    parsed_tx_data: TxData = None
     """The transaction data sent along with the RPC request.  Populated
     only if (1) it is a eth_sendRawTransaction request, and (2) if the
     instance has parse_raw_tx_data=True"""
@@ -112,15 +112,14 @@ class BaseRpcLog(ABC):
         should be logged or not.  If True, the ``log_response`` method will be
         called.  By default, all responses are logged.
 
-     - ``log_request(method, params, w3, tx_data)``: called when a request is
-        received.  If the request is to eth_sendRawTransaction, the ``tx_data``
-        dict will also be available, with the decoded transaction data.
+     - ``log_request(RequestEntry)``: called when a request is received.  If the
+        request is to eth_sendRawTransaction, the ``parsed_tx_data`` field will be
+        populated, with the decoded transaction data.
 
-     - ``log_response(method, params, w3, response, tx_data, tx_receipt)``:
-        called when a response is received.  If the request was to submit a
-        transaction, the ``tx_data`` and ``tx_receipt`` parameters will be
-        passed, but only if self.fetch_tx_data=True and self.fetch_tx_receipt=True,
-        respectively.
+     - ``log_response(ResponseEntry)``: called when a response is received.
+        If the request was to submit a transaction, the ``tx_data`` and ``tx_receipt``
+        fields will be populated, but only if self.fetch_tx_data=True and
+        self.fetch_tx_receipt=True, respectively.
     """
 
     class_logger = getLogger("web3client.RpcLog")
@@ -185,7 +184,7 @@ class BaseRpcLog(ABC):
             timestamp=datetime.now(),
             method=method,
             params=params,
-            tx_data=tx_data,
+            parsed_tx_data=tx_data,
             w3=w3,
         )
         # Call logging function
@@ -195,8 +194,8 @@ class BaseRpcLog(ABC):
         """
         Log a request.  Meant to be overridden by subclasses.
 
-        The tx_data parameter is passed only if (1) the request is a
-        transaction-related request, and (2) the instance has
+        The `parsed_tx_data` field is included in `entry` only if (1) the
+        request is a transaction-related request, and (2) the instance has
         self.parse_raw_tx_data=True.
         """
         pass
@@ -316,19 +315,19 @@ class PythonLog(BaseRpcLog):
     def format_request(self, entry: RequestEntry) -> str:
         """Return the log message for a request"""
         e = entry
-        msg = f"[REQ {e.method}] Id: {e.id}, Params: {e.params}"
-        if e.tx_data is not None:
-            msg += f", Transaction data: {e.tx_data}"
+        msg = f"[REQ {e.method}] ID: {e.id}, Params: {e.params}"
+        if e.parsed_tx_data is not None:
+            msg += f", Parsed TX data: {e.parsed_tx_data}"
         return msg
 
     def format_response(self, entry: ResponseEntry) -> str:
         """Return the log message for a response"""
         e = entry
-        msg = f"[RES to {e.method}] Id: {e.id}, Params: {e.params}, Response: {e.response}"
+        msg = f"[RES to {e.method}] ID: {e.id}, Params: {e.params}, Response: {e.response}"
         if e.tx_data is not None:
-            msg += f", Transaction data: {e.tx_data}"
+            msg += f", TX data: {e.tx_data}"
         if e.tx_receipt is not None:
-            msg += f", Transaction receipt: {e.tx_receipt}"
+            msg += f", TX receipt: {e.tx_receipt}"
         return msg
 
 

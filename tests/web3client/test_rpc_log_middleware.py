@@ -120,7 +120,7 @@ def test_rpc_log_middleware_memory_log_empty_whitelist(
 
 
 @pytest.mark.local
-def test_rpc_log_middleware_memory_log_decode_raw(
+def test_rpc_log_middleware_memory_log_parse_raw(
     alice_erc20_client: Erc20Client,
     bob: ape.api.AccountAPI,
 ) -> None:
@@ -138,13 +138,13 @@ def test_rpc_log_middleware_memory_log_decode_raw(
     tx_requests = log.get_tx_requests()
     assert len(tx_requests) == 2
     # Check decoding for the ETH transfer
-    tx_data_eth = tx_requests[0].tx_data
+    tx_data_eth = tx_requests[0].parsed_tx_data
     assert Web3.to_hex(tx_data_eth["hash"]) == tx_hash_eth
     assert tx_data_eth["from"] == alice_erc20_client.user_address
     assert tx_data_eth["to"] == bob.address
     assert int(tx_data_eth["value"]) == 10**18
     # Check decoding for the token transfer
-    tx_data_erc20 = tx_requests[1].tx_data
+    tx_data_erc20 = tx_requests[1].parsed_tx_data
     assert Web3.to_hex(tx_data_erc20["hash"]) == tx_hash_erc20
     assert tx_data_erc20["from"] == alice_erc20_client.user_address
     assert tx_data_erc20["to"] == alice_erc20_client.contract_address
