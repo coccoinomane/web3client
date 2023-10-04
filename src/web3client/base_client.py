@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from logging import Logger, getLogger
 from os.path import dirname, isfile, realpath
 from pathlib import Path
 from typing import Any, Callable, List, Tuple, Type, Union, cast
@@ -181,6 +182,9 @@ class BaseClient:
     abi_dir: Union[Path, str] = Path(dirname(realpath(__file__))) / "abi"
     """Directory where to find the ABI json files"""
 
+    logger: Logger = getLogger("web3client.BaseClient")
+    """Class logger"""
+
     def __init__(
         self,
         node_uri: str = None,
@@ -318,7 +322,10 @@ class BaseClient:
         }
 
         # Infer tx_type if requested.  If the node does not support EIP-1559, fall back to legacy
-        tx_type = self.tx_type or self.infer_tx_type()
+        tx_type = self.tx_type
+        if not tx_type:
+            tx_type = self.infer_tx_type()
+            self.logger.debug(f"Inferred tx_type={tx_type}")
 
         # Compute gas fee based on the transaction type
         gas_fee_in_gwei: float = None
@@ -328,6 +335,9 @@ class BaseClient:
             self.w3.eth.set_gas_price_strategy(rpc.rpc_gas_price_strategy)
             tx["gasPrice"] = self.w3.eth.generate_gas_price()
             gas_fee_in_gwei = float(Web3.from_wei(tx["gasPrice"], "gwei"))
+            self.logger.debug(
+                f"Will build legacy TX with gasPrice={gas_fee_in_gwei} gwei"
+            )
 
         # Post EIP-1599, we have both the miner's tip and the max fee.
         elif tx_type == 2:
@@ -344,6 +354,9 @@ class BaseClient:
                 max_priority_fee_in_gwei
             )
             tx["maxFeePerGas"] = Web3.to_wei(maxFeePerGasInGwei, "gwei")
+            self.logger.debug(
+                f"Will build EIP-1559 TX with maxFeePerGas={maxFeePerGasInGwei} gwei maxPriorityFeePerGas={max_priority_fee_in_gwei} gwei"
+            )
         else:
             raise Web3ClientException(
                 f"Transaction with tx_type={tx_type} not supported, use either 0, 1 or 2"

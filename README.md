@@ -31,7 +31,7 @@ pip3 install -U web3client
 
 - Send 1 ETH and 100 USDC to Unicef, using a dual client:
    ```python
-   from web3client.dual_client import DualClient
+   from web3client.erc20_client import DualClient
    
    rpc = "https://cloudflare-eth.com"
    private_key = "0x..."
