@@ -12,15 +12,10 @@ from typing_extensions import Literal, override
 from web3 import Web3
 from web3.types import Middleware, RPCEndpoint, RPCResponse, TxData, TxReceipt
 
-from web3client.helpers.tx import (
-    is_rpc_response_ok,
-    parse_call_tx,
-    parse_estimate_gas_tx,
-    parse_raw_tx,
-)
+from web3client.helpers.tx import is_rpc_response_ok, parse_raw_tx
 
-TX_DATA_METHODS = ["eth_sendRawTransaction", "eth_call", "eth_estimateGas"]
-"""RPC endpoints whose parameters can be mapped or decoded to a TxData object"""
+TX_WRITE_METHODS = ["eth_sendRawTransaction", "eth_sendTransaction"]
+"""RPC endpoints that submit a transaction to the blockchain"""
 
 """
   _____
@@ -70,8 +65,8 @@ class RequestEntry(RpcEntry):
     """Whether the entry is for a request or a response"""
     tx_data: TxData = None
     """The transaction data sent along with the RPC request.  Populated
-    only for transaction-related requests (eth_sendRawTransaction, eth_call,
-    eth_estimateGas), if the instance has decode_tx_data=True"""
+    only if (1) it is a eth_sendRawTransaction request, and (2) if the
+    instance has parse_raw_tx_data=True"""
 
 
 @dataclass
@@ -87,12 +82,10 @@ class ResponseEntry(RpcEntry):
     spent in the middleware."""
     tx_data: TxData = None
     """The data of the transaction sent with the RPC request, as fetched from
-    the blockchain with eth_getTransaction. Populated only for
-    eth_sendRawTransaction requests, if the instance has fetch_tx_data=True"""
+    the blockchain with eth_getTransaction"""
     tx_receipt: TxReceipt = None
     """The receipt of the transaction sent with the RPC request, as fetched from
-    the blockchain with eth_getTransactionReceipt. Populated only for
-    eth_sendRawTransaction requests, if the instance has fetch_tx_data=True"""
+    the blockchain with eth_getTransactionReceipt"""
 
 
 """
@@ -110,19 +103,24 @@ class BaseRpcLog(ABC):
 
     The class is meant to be used in a web3.py Middleware.  Subclasses can
     override the following methods:
-     - ``log_request(method, params, w3, tx_data)``: called when a request is
-        received.  If the request is transaction-related, the ``tx_data``
-        parameter will be available.
-     - ``log_response(method, params, w3, response, tx_data, tx_receipt)``:
-        called when a response is received.  If the request was to send a write
-        transaction, the ``tx_data`` and ``tx_receipt`` parameters will be
-        passed, provided self.fetch_tx_data and self.fetch_tx_receipt are True.
+
      - ``should_log_request(method, params, w3)``: whether a request should be
         logged or not.  If True, the ``log_request`` method will be called.  By
         default, all requests are logged.
+
      - ``should_log_response(method, params, w3, response)``: whether a response
         should be logged or not.  If True, the ``log_response`` method will be
         called.  By default, all responses are logged.
+
+     - ``log_request(method, params, w3, tx_data)``: called when a request is
+        received.  If the request is to eth_sendRawTransaction, the ``tx_data``
+        dict will also be available, with the decoded transaction data.
+
+     - ``log_response(method, params, w3, response, tx_data, tx_receipt)``:
+        called when a response is received.  If the request was to submit a
+        transaction, the ``tx_data`` and ``tx_receipt`` parameters will be
+        passed, but only if self.fetch_tx_data=True and self.fetch_tx_receipt=True,
+        respectively.
     """
 
     class_logger = getLogger("web3client.RpcLog")
@@ -132,7 +130,7 @@ class BaseRpcLog(ABC):
         rpc_whitelist: List[str] = None,
         fetch_tx_data: bool = False,
         fetch_tx_receipt: bool = False,
-        decode_tx_data: bool = True,
+        parse_raw_tx_data: bool = True,
     ) -> None:
         """
         :param rpc_whitelist: A list of RPC methods to log.  If None, all
@@ -143,13 +141,12 @@ class BaseRpcLog(ABC):
         :param fetch_tx_receipt: If True, the transaction receipt will be
             fetched and made available to the ``log_response`` method.  Applies
             only to transactions.
-        :param decode_tx_data: If True, requests parameters will be decoded into
+        :param parse_raw_tx_data: If True, requests parameters will be decoded into
             a TxData object, and made available to the ``log_request`` method.
-            Applies to both transactions (eth_sendRawTransaction) and simulations
-            (eth_call, eth_estimateGas).
+            Applies only when sending raw transactions (eth_sendRawTransaction).
         """
         self.rpc_whitelist = rpc_whitelist
-        self.decode_tx_data = decode_tx_data
+        self.parse_raw_tx_data = parse_raw_tx_data
         self.fetch_tx_data = fetch_tx_data
         self.fetch_tx_receipt = fetch_tx_receipt
         self.init()
@@ -174,15 +171,13 @@ class BaseRpcLog(ABC):
         # Decode tx data if requested
         tx_data = None
         try:
-            if self.decode_tx_data:
+            if self.parse_raw_tx_data:
                 if method == "eth_sendRawTransaction":
                     tx_data = parse_raw_tx(params[0])
-                elif method == "eth_estimateGas":
-                    tx_data = parse_estimate_gas_tx(params[0])
-                elif method == "eth_call":
-                    tx_data = parse_call_tx(params[0])
         except Exception:
-            self.class_logger.warning(f"Could not decode call to '{method}'")
+            self.class_logger.warning(
+                f"Could not parse raw tx in request to '{method}'"
+            )
         # Build log entry
         entry = RequestEntry(
             id=id,
@@ -202,7 +197,7 @@ class BaseRpcLog(ABC):
 
         The tx_data parameter is passed only if (1) the request is a
         transaction-related request, and (2) the instance has
-        self.decode_tx_data=True.
+        self.parse_raw_tx_data=True.
         """
         pass
 
@@ -228,11 +223,11 @@ class BaseRpcLog(ABC):
         ok = is_rpc_response_ok(response)
         # Fetch tx data if requested
         tx_data = None
-        if ok and self.fetch_tx_data and method == "eth_sendRawTransaction":
+        if ok and self.fetch_tx_data and method in TX_WRITE_METHODS:
             tx_data = w3.eth.get_transaction(response["result"])
         # Fetch tx receipt if requested
         tx_receipt = None
-        if ok and self.fetch_tx_receipt and method == "eth_sendRawTransaction":
+        if ok and self.fetch_tx_receipt and method in TX_WRITE_METHODS:
             tx_receipt = w3.eth.wait_for_transaction_receipt(response["result"])
         # Build log entry
         entry = ResponseEntry(
@@ -254,9 +249,10 @@ class BaseRpcLog(ABC):
         """
         Log a response.  Meant to be overridden by subclasses.
 
-        The tx_data and tx_receipt parameters are passed only if (1) the request
-        was eth_sendRawTransaction, (2) the instance has self.fetch_tx_data=True
-        and/or self.fetch_tx_receipt=True, and (3) the request was successful.
+        The tx_data and tx_receipt parameters are passed only if:
+        (1) the RPC request submitted a transaction,
+        (2) if the instance has fetch_tx_data=True and fetch_tx_receipt=True, respectively, and
+        (3) if the request was successful.
         """
         pass
 
@@ -301,10 +297,12 @@ class PythonLog(BaseRpcLog):
         rpc_whitelist: List[str] = None,
         fetch_tx_data: bool = False,
         fetch_tx_receipt: bool = False,
-        decode_tx_data: bool = True,
+        parse_raw_tx_data: bool = True,
         logger: Logger = None,
     ) -> None:
-        super().__init__(rpc_whitelist, fetch_tx_data, fetch_tx_receipt, decode_tx_data)
+        super().__init__(
+            rpc_whitelist, fetch_tx_data, fetch_tx_receipt, parse_raw_tx_data
+        )
         self.logger = logger or self.class_logger
 
     @override
@@ -318,7 +316,7 @@ class PythonLog(BaseRpcLog):
     def format_request(self, entry: RequestEntry) -> str:
         """Return the log message for a request"""
         e = entry
-        msg = f"RPC request: Id: {e.id}, Method: {e.method}, Params: {e.params}"
+        msg = f"[REQ {e.method}] Id: {e.id}, Params: {e.params}"
         if e.tx_data is not None:
             msg += f", Transaction data: {e.tx_data}"
         return msg
@@ -326,7 +324,7 @@ class PythonLog(BaseRpcLog):
     def format_response(self, entry: ResponseEntry) -> str:
         """Return the log message for a response"""
         e = entry
-        msg = f"RPC response: Id: {e.id}, Method: {e.method}, Params: {e.params}, Response: {e.response}"
+        msg = f"[RES to {e.method}] Id: {e.id}, Params: {e.params}, Response: {e.response}"
         if e.tx_data is not None:
             msg += f", Transaction data: {e.tx_data}"
         if e.tx_receipt is not None:
@@ -370,12 +368,12 @@ class MemoryLog(BaseRpcLog):
         return [e for e in self.entries if e.type == "response"]
 
     def get_tx_requests(self) -> List[RequestEntry]:
-        """Returns the log entries of transaction-related requests"""
-        return [e for e in self.get_requests() if e.method in TX_DATA_METHODS]
+        """Returns the logged requests to RPC methdos that submit a transaction"""
+        return [e for e in self.get_requests() if e.method in TX_WRITE_METHODS]
 
     def get_tx_responses(self) -> List[ResponseEntry]:
-        """Returns the log entries of transaction-related responses"""
-        return [e for e in self.get_responses() if e.method in TX_DATA_METHODS]
+        """Returns the logged responses from RPC methdos that submit a transaction"""
+        return [e for e in self.get_responses() if e.method in TX_WRITE_METHODS]
 
 
 """
@@ -430,7 +428,7 @@ def construct_tx_rpc_log(
 ) -> PythonLog:
     """Return a PythonLog that logs transactions sent to the blockchain"""
     return PythonLog(
-        rpc_whitelist=["eth_sendRawTransaction"],
+        rpc_whitelist=TX_WRITE_METHODS,
         fetch_tx_data=fetch_tx_data,
         fetch_tx_receipt=fetch_tx_receipt,
         logger=logger,

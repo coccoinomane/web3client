@@ -164,83 +164,6 @@ def test_rpc_log_middleware_memory_log_decode_raw(
 
 
 @pytest.mark.local
-def test_rpc_log_middleware_memory_log_decode_estimate_gas(
-    alice_erc20_client: Erc20Client,
-    bob: ape.api.AccountAPI,
-) -> None:
-    """Estimate gas spent for an ETH transfer and a token transfer, and check
-    that the requests are included in the log entries with their decoded tx_data"""
-    log = MemoryLog(rpc_whitelist=["eth_estimateGas"])
-    alice_erc20_client.w3.middleware_onion.add(
-        construct_generic_rpc_log_middleware(log)
-    )
-    # Send ETH transfer.  This will trigger an eth_estimateGas request
-    alice_erc20_client.send_eth_in_wei(bob.address, 10**18)
-    # Send a token transfer.  This will trigger an eth_estimateGas request
-    alice_erc20_client.transfer(bob.address, 10**18)
-    # Check that the txs were logged
-    tx_requests = log.get_tx_requests()
-    assert len(tx_requests) == 2
-    # Check decoding for the ETH transfer
-    tx_data_eth = tx_requests[0].tx_data
-    assert tx_data_eth["from"] == alice_erc20_client.user_address
-    assert tx_data_eth["to"] == bob.address
-    assert not tx_data_eth["data"]
-    assert int(tx_data_eth["value"]) == 10**18
-    # Check decoding for the token transfer
-    tx_data_erc20 = tx_requests[1].tx_data
-    assert tx_data_erc20["from"] == alice_erc20_client.user_address
-    assert tx_data_erc20["to"] == alice_erc20_client.contract_address
-    assert tx_data_erc20["data"]
-    assert int(tx_data_erc20["value"]) == 0
-    # Check that both response were simply integer numbers
-    tx_responses = log.get_tx_responses()
-    assert len(tx_responses) == 2
-    # ... ETH transfer
-    assert type(tx_responses[0].response["result"]) is str
-    assert tx_responses[0].response["result"].startswith("0x")
-    assert int(tx_responses[0].response["result"], 16) > 0
-    # ... token transfer
-    assert type(tx_responses[1].response["result"]) is str
-    assert tx_responses[1].response["result"].startswith("0x")
-    assert int(tx_responses[1].response["result"], 16) > 0
-
-
-@pytest.mark.local
-def test_rpc_log_middleware_memory_log_decode_call(
-    alice_erc20_client: Erc20Client,
-    bob: ape.api.AccountAPI,
-) -> None:
-    """Simulate an ETH transfer using eth_call, and check that the requests are
-    included in the log entries with their decoded tx_data"""
-    log = MemoryLog(rpc_whitelist=["eth_call"])
-    alice_erc20_client.w3.middleware_onion.add(
-        construct_generic_rpc_log_middleware(log)
-    )
-    # Simulate a token transfer.  This will trigger an eth_estimateGas request
-    alice_erc20_client.functions.transfer(bob.address, 10**18).call(),
-    # Check that the tx was logged
-    tx_requests = log.get_tx_requests()
-    assert len(tx_requests) == 1
-    # Check that the outgoing eth_estimateGas request was correctly decoded
-    tx_data = tx_requests[0].tx_data
-    assert tx_data["from"] == alice_erc20_client.user_address
-    assert tx_data["to"] == alice_erc20_client.contract_address
-    assert tx_data["data"]
-    assert int(tx_data["value"]) == 0
-    # Check that there is no hash in tx_data
-    assert not tx_data["hash"]
-    # Check that the response is a True boolean
-    tx_responses = log.get_tx_responses()
-    assert len(tx_responses) == 1
-    assert type(tx_responses[0].response["result"]) is str
-    assert (
-        tx_responses[0].response["result"]
-        == "0x0000000000000000000000000000000000000000000000000000000000000001"
-    )
-
-
-@pytest.mark.local
 def test_rpc_log_middleware_memory_log_fetch(
     alice_base_client: BaseClient,
     bob: ape.api.AccountAPI,
@@ -284,8 +207,8 @@ def test_rpc_log_middleware_tx_rpc_log_middleware(
     # Check that the log file contains the request and response
     assert file.exists(), f"file '{file}' not found"
     content = file.read_text()
-    assert "RPC request" in content
-    assert "RPC response" in content
+    assert "[REQ " in content
+    assert "[RES " in content
 
 
 #   _   _          _   _
@@ -369,5 +292,5 @@ def test_unit_rpc_log_middleware_python_log(
 
     # Assert
     assert len(records) == 2
-    assert "RPC request" in records[0][2]
-    assert "RPC response" in records[1][2]
+    assert "[REQ" in records[0][2]
+    assert "[RES" in records[1][2]
