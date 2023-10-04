@@ -1,8 +1,9 @@
 # Top priority
 
-# To do
+- Make a distinction between type 1 and legacy transactions (https://docs.infura.io/networks/ethereum/concepts/transaction-types)
+- Autodetect whether the given network supports type-2 transactions
 
-- PythonLog constructor with presets
+# To do
 
 # Backlog
 

@@ -47,36 +47,55 @@ from web3client.types import (
 
 class BaseClient:
     """
-    Client to interact with a blockchain, with smart contract
-    support.
+    Interact with a blockchain, with smart contract support.
 
-    The client is a wrapper intended to make the Web3 library
-    easier to use.
-    """
+    Smart contract support
+    ----------------------
 
-    # Attributes that can be set in the constructor or
-    # overridden by subclasses
-    node_uri: str = None
-    """RPC node to use.  Set it to None for a uninitialized client."""
-    chain_id: int = None
-    """ID of the chain.  If not given, it will be inferred from the node"""
-    tx_type: int = None
-    """Type of transaction. type=2 means an EIP-1599 transaction. More details here > https://docs.infura.io/infura/networks/ethereum/concepts/transaction-types"""
-    private_key: str = None
-    """Private key to use to send transactions"""
-    max_priority_fee_in_gwei: float = None
-    """"Miner's tip, relevant only for type-2 transactions (default is 1)"""
-    upper_limit_for_base_fee_in_gwei: float = None
-    """Raise an exception if baseFee is larger than this (default is no limit)"""
-    abi: dict[str, Any] = None
-    """ABI of smart contract; to read from a JSON file, use class method get_abi_json()"""
-    contract_address: str = None
-    """Address of smart contract"""
-    middlewares: List[Middleware] = None
-    """Ordered list of web3.py middlewares to use"""
-    rpc_logs: List[BaseRpcLog] = None
-    """Where to log RPC calls.
-    
+    If you specify a contract address and an ABI, you can then use the
+    `self.call(<function>)` and `self.transact(<function>)` methods to interact
+    with the smart contract.  The functions of the smart contract are available
+    as attributes of `self.functions`.
+
+    The easiest way to use web3client with smart contracts, is to subclass
+    BaseClient.  See for example the `Erc20Client` class, to interact with
+    ERC-20 tokens, and `compound_v2_client.py`, which contains classes to
+    interact with Compound V2 pools and comptroller.
+
+    Transaction types & gas
+    -----------------------
+
+    The client supports both EIP-1559 and legacy transactions.  EIP-1559 transactions
+    are the default.  Whenever possible, gas will be estimated.  The rationale is to
+    spare the user the need to specify gas parameters.
+
+    The transaction type is set with the `tx_type` attribute, which can be set either
+    at the class level or instance level.  Its possible values are:
+
+    - tx_type = 2 (default): Will send EIP-1559 transactions.
+        The miner's tip (maxMaxFeePerGas) can be set at the class level, instance
+        level or function level.  If not set, it will be set to 0.01 Gwei by default.
+        The max fee (maxMaxFeePerGas) is estimated according to the usual formula
+        maxMaxFeePerGas = 2 * baseFee + maxPriorityFeePerGas, where baseFee is the
+        base fee of the last block.
+    - tx_type = 0: Will send legacy transactions.  Gas price will be estimated
+        using eth_gasPrice.
+    - tx_type = 1: This value indicates a legacy transaction with support for
+        access lists (EIP2930 transactions).  The client does not support access lists
+        yet, therefore we will treat this as a legacy transaction.
+
+    The gas limit is set indipendently than the transaction type.  If not set, it will
+    be estimated using eth_gasEstimate.  If set, it will be used as is, and no estimation
+    will be performed.
+
+    More details on transaction types & gas on Infura docs:
+    https://docs.infura.io/networks/ethereum/concepts/transaction-types
+
+    RPC logging
+    -----------
+
+    The client supports flexible logging of RPC calls, via the `rpc_logs` argument.
+
     To log all RPC call, set `rpc_logs=[PythonLog()]`.  This will make use of
     the logger named 'web3client.RpcLog', with logLevel=INFO.  To log to a different
     logger, specify it: `rpc_logs=[PythonLog(logger=logging.getLogger("my_logger"))]`.
@@ -94,12 +113,40 @@ class BaseClient:
         client.send_eth("0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae", 1)
         print(rpc.log.entries) # will contain 2 entries: request & response
         ```
-    
+
     One can also log to file, or to a database.  For more details, see the docs of the
     rpc_log_middleware module.
-    
-    Please note that subclasses can define a class attribute rpc_logs to set a default
-    value for `rpc_logs` for all instances of the subclass."""
+
+    Please note that subclasses can define a class attribute `rpc_logs` to set a default
+    value for `rpc_logs` for all instances of the subclass.
+    """
+
+    # Attributes that can be either set at instantiation or at the class level,
+    # with their default values.  Being able to set these attributes at the class
+    # level makes it possible to change them by subclasses, or dynamically, using
+    # monkey patching.
+    node_uri: str = None
+    """RPC node to use.  Set it to None for a uninitialized client."""
+    chain_id: int = None
+    """ID of the chain.  If not given, it will be inferred from the node"""
+    tx_type: int = 2
+    """Type of transaction. type=2 means an EIP-1599 transaction. More details in class docstring."""
+    max_priority_fee_in_gwei: float = 0.01
+    """"Miner's tip, relevant only for type-2 transactions.  Default is 0.01 Gwei"""
+    upper_limit_for_base_fee_in_gwei: float = float("inf")
+    """Raise an exception if baseFee is larger than this (default is no limit)"""
+    contract_address: str = None
+    """Address of smart contract"""
+    abi: dict[str, Any] = None
+    """ABI of smart contract; to read from a JSON file, use class method get_abi_json()"""
+    middlewares: List[Middleware] = None
+    """Ordered list of web3.py middlewares to use"""
+    rpc_logs: List[BaseRpcLog] = None
+    """Where to log RPC calls.  More details in class docstring"""
+
+    # Attributes that can only be set at instantiation
+    private_key: str = None
+    """Private key to use to send transactions"""
 
     # Derived attributes
     w3: Web3
@@ -113,45 +160,46 @@ class BaseClient:
     functions: ContractFunctions
     """ContractFunctions object of web3.py"""
 
-    # Class attributes
+    # Class-only attributes
     abi_dir: Union[Path, str] = Path(dirname(realpath(__file__))) / "abi"
     """Directory where to find the ABI json files"""
 
     def __init__(
         self,
-        node_uri: str,
+        node_uri: str = None,
         chain_id: int = None,
-        tx_type: int = 2,
+        tx_type: int = None,
         private_key: str = None,
-        max_priority_fee_in_gwei: float = 1,
-        upper_limit_for_base_fee_in_gwei: float = float("inf"),
+        max_priority_fee_in_gwei: float = None,
+        upper_limit_for_base_fee_in_gwei: float = None,
         contract_address: str = None,
         abi: dict[str, Any] = None,
-        middlewares: List[Middleware] = [],
-        rpc_logs: List[BaseRpcLog] = [],
+        middlewares: List[Middleware] = None,
+        rpc_logs: List[BaseRpcLog] = None,
     ) -> None:
-        # Set the w3 client
-        self.set_provider(node_uri)
+        # Initialize the w3 client
+        self.set_provider(node_uri or self.__class__.node_uri)
 
-        # Set attributes.  The 'if' part is to allow subclasses to override
-        # the parameters.
-        if chain_id:
-            self.chain_id = chain_id
-        if tx_type:
-            self.tx_type = tx_type
+        # Initialize attributes without class-defined defaults
         if private_key:
             self.set_account(private_key)
-        if max_priority_fee_in_gwei:
-            self.max_priority_fee_in_gwei = max_priority_fee_in_gwei
-        if upper_limit_for_base_fee_in_gwei:
-            self.upper_limit_for_base_fee_in_gwei = upper_limit_for_base_fee_in_gwei
-        if abi:
-            self.abi = abi
-        if contract_address:
-            self.set_contract(contract_address)
-        if middlewares:
-            self.set_middlewares(middlewares)
-        if rpc_logs or self.__class__.rpc_logs:  # allow for class-defined rpc_logs
+
+        # Initialize attributes with class-defined defaults
+        self.chain_id = chain_id or self.__class__.chain_id
+        self.tx_type = tx_type or self.__class__.tx_type
+        self.max_priority_fee_in_gwei = (
+            max_priority_fee_in_gwei or self.__class__.max_priority_fee_in_gwei
+        )
+        self.upper_limit_for_base_fee_in_gwei = (
+            upper_limit_for_base_fee_in_gwei
+            or self.__class__.upper_limit_for_base_fee_in_gwei
+        )
+        self.abi = abi or self.__class__.abi
+        if contract_address or self.__class__.contract_address:
+            self.set_contract(contract_address or self.__class__.contract_address)
+        if middlewares or self.__class__.middlewares:
+            self.set_middlewares(middlewares or self.__class__.middlewares)
+        if rpc_logs or self.__class__.rpc_logs:
             self.set_rpc_logs(rpc_logs or self.__class__.rpc_logs)
 
         # Further initialization
@@ -223,13 +271,14 @@ class BaseClient:
         """
         Build a basic transaction with type, nonce, chain ID and gas
 
-        - If not given, the nonce will be computed on chain
-        - If not given, the gas limit will be estimated on chain using gas_estimate()
+        - If not given, the nonce will be computed on chain using "eth_getTransactionCount"
+        - If not given, the gas limit will be estimated on chain using "eth_gasEstimate"
         - For type-2 transactions, if not given, the miner's tip (maxPriorityFeePerGas)
-          will be set to self.max_priority_fee_in_gwei
+           will be set to self.max_priority_fee_in_gwei
         - For type-2 transactions, the max gas fee is estimated according to the usual
-          formula maxMaxFeePerGas = 2 * baseFee + maxPriorityFeePerGas.
-        - For type-1 transactions, the gasPrice is estimated on-chain using eth_gasPrice.
+           formula maxMaxFeePerGas = 2 * baseFee + maxPriorityFeePerGas.
+        - For legacy and type-1 transactions, the gasPrice is estimated on-chain using
+           eth_gasPrice.
         """
 
         # Properties that you are not likely to change
@@ -241,8 +290,8 @@ class BaseClient:
         # Compute gas fee based on the transaction type
         gas_fee_in_gwei: float = None
 
-        # Pre EIP-1599, we only have gasPrice
-        if self.tx_type == 1:
+        # For legacy transactions, we only have gasPrice
+        if self.tx_type == 0 or self.tx_type == 1:
             self.w3.eth.set_gas_price_strategy(rpc.rpc_gas_price_strategy)
             tx["gasPrice"] = self.w3.eth.generate_gas_price()
             gas_fee_in_gwei = float(Web3.from_wei(tx["gasPrice"], "gwei"))
@@ -264,7 +313,7 @@ class BaseClient:
             tx["maxFeePerGas"] = Web3.to_wei(maxFeePerGasInGwei, "gwei")
         else:
             raise Web3ClientException(
-                f"Transaction with tx_type={self.tx_type} not supported, use either 1 or 2"
+                f"Transaction with tx_type={self.tx_type} not supported, use either 0, 1 or 2"
             )
 
         # Raise an exception if the fee is too high
@@ -842,10 +891,13 @@ class BaseClient:
         Execute a contract function.
         This will write to the blockchain.
 
-        Example: transfer some tokens to the given address:
+        Example: transfer some ERC20 tokens to the given address:
+
+            ```
             client.transact(
                 client.functions.transfer(address, amount)
             )
+            ```
         """
         tx: TxParams = self.build_contract_tx(
             function, value_in_wei, nonce, gas_limit, max_priority_fee_in_gwei
