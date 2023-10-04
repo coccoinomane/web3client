@@ -62,6 +62,7 @@ class BaseClient:
     ERC-20 tokens, and `compound_v2_client.py`, which contains classes to
     interact with Compound V2 pools and comptroller.
 
+
     Transaction types & gas
     -----------------------
 
@@ -83,6 +84,8 @@ class BaseClient:
     - tx_type = 1: This value indicates a legacy transaction with support for
         access lists (EIP2930 transactions).  The client does not support access lists
         yet, therefore we will treat this as a legacy transaction.
+    - tx_type = None: The client will try to infer the transaction type from the node.
+        If the node does not support EIP-1559, it will fall back to legacy transactions
 
     The gas limit is set indipendently than the transaction type.  If not set, it will
     be estimated using eth_gasEstimate.  If set, it will be used as is, and no estimation
@@ -90,6 +93,20 @@ class BaseClient:
 
     More details on transaction types & gas on Infura docs:
     https://docs.infura.io/networks/ethereum/concepts/transaction-types
+
+
+    Set a max cost for gas
+    ----------------------
+
+    You can set a maximum cost for gas, to avoid paying too much for a transaction.
+    To do so, set the `upper_limit_for_base_fee_in_gwei`. If the base fee from the
+    last block is larger than this limit, the client will raise a `TransactionTooExpensive`
+    exception.  By default, there is no limit.
+
+    The `upper_limit_for_base_fee_in_gwei` parameter works for legacy transactions,
+    too.  In this case, the gas price estimation (eth_gasPrice) will be used as
+    reference, instead of the base fee.
+
 
     RPC logging
     -----------
@@ -177,6 +194,19 @@ class BaseClient:
         middlewares: List[Middleware] = None,
         rpc_logs: List[BaseRpcLog] = None,
     ) -> None:
+        """
+        Create a new client.
+
+        The client can be instantiated with no arguments.  In this case, you will have
+        to call the following setters before using the client:
+
+         -  If `node_uri` is not given, call `self.set_provider()` before interacting
+             with the blockchain.
+         -  If `private_key` is not given, call `self.set_account()` before sending
+             transactions.
+         -  If `contract_address` is not given, call `self.set_contract()` before
+             using `self.call()` or `self.transact()`.
+        """
         # Initialize the w3 client
         self.set_provider(node_uri or self.__class__.node_uri)
 
@@ -216,7 +246,7 @@ class BaseClient:
 
     def set_provider(self, node_uri: str) -> Self:
         self.node_uri = node_uri
-        self.w3 = self.get_provider(node_uri)
+        self.w3 = self.make_provider(node_uri)
         return self
 
     def set_account(self, private_key: str) -> Self:
@@ -287,18 +317,21 @@ class BaseClient:
             "from": self.user_address,
         }
 
+        # Infer tx_type if requested.  If the node does not support EIP-1559, fall back to legacy
+        tx_type = self.tx_type or self.infer_tx_type()
+
         # Compute gas fee based on the transaction type
         gas_fee_in_gwei: float = None
 
         # For legacy transactions, we only have gasPrice
-        if self.tx_type == 0 or self.tx_type == 1:
+        if tx_type == 0 or tx_type == 1:
             self.w3.eth.set_gas_price_strategy(rpc.rpc_gas_price_strategy)
             tx["gasPrice"] = self.w3.eth.generate_gas_price()
             gas_fee_in_gwei = float(Web3.from_wei(tx["gasPrice"], "gwei"))
 
         # Post EIP-1599, we have both the miner's tip and the max fee.
-        elif self.tx_type == 2:
-            tx["type"] = Web3.to_hex(self.tx_type)
+        elif tx_type == 2:
+            tx["type"] = Web3.to_hex(tx_type)
 
             # The miner tip is user-provided
             max_priority_fee_in_gwei = (
@@ -313,7 +346,7 @@ class BaseClient:
             tx["maxFeePerGas"] = Web3.to_wei(maxFeePerGasInGwei, "gwei")
         else:
             raise Web3ClientException(
-                f"Transaction with tx_type={self.tx_type} not supported, use either 0, 1 or 2"
+                f"Transaction with tx_type={tx_type} not supported, use either 0, 1 or 2"
             )
 
         # Raise an exception if the fee is too high
@@ -933,6 +966,18 @@ class BaseClient:
             rpc_logs=self.rpc_logs,
         )
 
+    def supports_eip1559(self) -> bool:
+        """Return True if the chain supports EIP-1559"""
+        latest_block = self.w3.eth.get_block("latest")
+        return latest_block.get("baseFeePerGas") is not None
+
+    def infer_tx_type(self) -> int:
+        """Infer the transaction type for the chain: 2 if the chain supports
+        EIP-1559, else 0.  This is used to build transactions."""
+        if self.chain_id == 1:
+            return 2  # No need for ethereum mainnet ;-)
+        return 2 if self.supports_eip1559() else 0
+
     @staticmethod
     def get_contract(
         address: str,
@@ -973,7 +1018,7 @@ class BaseClient:
             return json.load(file)
 
     @staticmethod
-    def get_provider(node_uri: str) -> Web3:
+    def make_provider(node_uri: str) -> Web3:
         """
         Initialize provider (HTTPS & WS supported).
 
