@@ -68,6 +68,14 @@ supported_networks: List[NetworkConfig] = [
         "rpcs": ["https://evm.kava.io"],
         "coin": "KAVA",
     },
+    # Optimism
+    {
+        "name": "opt",
+        "tx_type": 1,
+        "chain_id": 10,
+        "rpcs": ["https://mainnet.optimism.io"],
+        "coin": "ETH",
+    },
 ]
 
 
