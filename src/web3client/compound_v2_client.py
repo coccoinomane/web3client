@@ -116,7 +116,7 @@ class CompoundV2CErc20Client(Erc20Client):
             raise Web3ClientException(
                 f"Fraction must be between 0 and 1, got {fraction}"
             )
-        amount = int(Decimal(fraction) * self.supplied())
+        amount = int(Decimal(str(fraction)) * self.supplied())
         return self.transact(self.functions.borrow(amount))
 
     def withdraw(self, amount: int) -> HexStr:
@@ -133,7 +133,7 @@ class CompoundV2CErc20Client(Erc20Client):
             raise Web3ClientException(
                 f"Fraction must be between 0 and 1, got {fraction}"
             )
-        amount = int(Decimal(fraction) * self.supplied())
+        amount = int(Decimal(str(fraction)) * self.supplied())
         return self.transact(self.functions.redeemUnderlying(amount))
 
     def withdraw_in_ctokens(self, amount: int) -> HexStr:
@@ -166,7 +166,7 @@ class CompoundV2CErc20Client(Erc20Client):
             raise Web3ClientException(
                 f"Fraction must be between 0 and 1, got {fraction}"
             )
-        amount = int(Decimal(fraction) * self.borrowed())
+        amount = int(Decimal(str(fraction)) * self.borrowed())
         return self.transact(self.functions.repayBorrow(amount))
 
     def approve_and_repay(self, amount: int) -> HexStr:
@@ -181,7 +181,7 @@ class CompoundV2CErc20Client(Erc20Client):
         """Repay tokens to the Compound V2 market, to reduce the
         amount borrowed, first approving. The amount to repay must
         be expressed as a fraction of the total borrowed amount."""
-        amount = int(Decimal(fraction) * self.borrowed())
+        amount = int(Decimal(str(fraction)) * self.borrowed())
         self.get_tx_receipt(
             self.get_underlying_client().approve(self.contract_address, amount)
         )
