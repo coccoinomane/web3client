@@ -4,6 +4,7 @@
 
 # Backlog
 
+- Test new Compound methods: borrow_fraction, repay_fraction, approve_and_repay_fraction, withdraw_fraction
 - Make chain_id, tx_type (and maybe more) cached properties of BaseClient
 - Cache supports_eip1559() and/or infer_eip1559() in BaseClient
 - Merge with [web3core](https://github.com/coccoinomane/web3cli/tree/master/src/web3core)?

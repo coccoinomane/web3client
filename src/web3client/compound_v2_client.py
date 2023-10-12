@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import List, cast
 
 from eth_typing import HexStr
@@ -108,9 +109,31 @@ class CompoundV2CErc20Client(Erc20Client):
         """Borrow tokens to the Compound V2 market"""
         return self.transact(self.functions.borrow(amount))
 
+    def borrow_fraction(self, fraction: float) -> HexStr:
+        """Borrow tokens to the Compound V2 market, expressed as a
+        fraction of the supplied amount"""
+        if fraction < 0 or fraction > 1:
+            raise Web3ClientException(
+                f"Fraction must be between 0 and 1, got {fraction}"
+            )
+        amount = int(Decimal(fraction) * self.supplied())
+        return self.transact(self.functions.borrow(amount))
+
     def withdraw(self, amount: int) -> HexStr:
         """Withdraw (redeem) tokens from the Compound V2 market
         IMPORTANT: Never withdraw too much, lest you risk liquidation"""
+        return self.transact(self.functions.redeemUnderlying(amount))
+
+    def withdraw_fraction(self, fraction: float) -> HexStr:
+        """Withdraw (redeem) tokens from the Compound V2 market.
+        The amount to repay must be expressed as a fraction of the total
+        supplied amount.
+        IMPORTANT: Never withdraw too much, lest you risk liquidation"""
+        if fraction < 0 or fraction > 1:
+            raise Web3ClientException(
+                f"Fraction must be between 0 and 1, got {fraction}"
+            )
+        amount = int(Decimal(fraction) * self.supplied())
         return self.transact(self.functions.redeemUnderlying(amount))
 
     def withdraw_in_ctokens(self, amount: int) -> HexStr:
@@ -120,6 +143,13 @@ class CompoundV2CErc20Client(Erc20Client):
 
     def withdraw_all(self) -> HexStr:
         """Withdraw (redeem) all tokens from the Compound V2 market.
+
+        Please be careful of an edge case.  If your only collateral is
+        in this market, and you have borrowed ETH, you will not be able
+        to withdraw all the tokens, because the borrowed ETH cannot be
+        repaid in full.  See the documentation of `self.repay_all()` for
+        more details.
+
         IMPORTANT: Never withdraw too much, lest you risk liquidation"""
         return self.withdraw_in_ctokens(self.supplied_in_ctokens())
 
@@ -128,9 +158,30 @@ class CompoundV2CErc20Client(Erc20Client):
         amount borrowed"""
         return self.transact(self.functions.repayBorrow(amount))
 
+    def repay_fraction(self, fraction: float) -> HexStr:
+        """Repay tokens to the Compound V2 market, to reduce the
+        amount borrowed; the amount to repay must be expressed as a
+        fraction of the total borrowed amount."""
+        if fraction < 0 or fraction > 1:
+            raise Web3ClientException(
+                f"Fraction must be between 0 and 1, got {fraction}"
+            )
+        amount = int(Decimal(fraction) * self.borrowed())
+        return self.transact(self.functions.repayBorrow(amount))
+
     def approve_and_repay(self, amount: int) -> HexStr:
         """Repay tokens to the Compound V2 market, to reduce the
         amount borrowed, first approving"""
+        self.get_tx_receipt(
+            self.get_underlying_client().approve(self.contract_address, amount)
+        )
+        return self.repay(amount)
+
+    def approve_and_repay_fraction(self, fraction: float) -> HexStr:
+        """Repay tokens to the Compound V2 market, to reduce the
+        amount borrowed, first approving. The amount to repay must
+        be expressed as a fraction of the total borrowed amount."""
+        amount = int(Decimal(fraction) * self.borrowed())
         self.get_tx_receipt(
             self.get_underlying_client().approve(self.contract_address, amount)
         )
@@ -205,6 +256,11 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
         ETH to the Compound V2 market"""
         return self.repay(amount)
 
+    def approve_and_repay_fraction(self, fraction: float) -> HexStr:
+        """Approving does not make sense for ETH, so just repay
+        ETH to the Compound V2 market"""
+        return self.repay_fraction(fraction)
+
     def approve_and_repay_all(self, extra_approve: float = None) -> HexStr:
         """Approving does not make sense for ETH, so just repay
         ETH to the Compound V2 market"""
@@ -225,8 +281,10 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
         Alas, this function won't reduce the borrowed amount to zero.
         By the time the transaction is resolved, your position will have
         accrued negative interest, and you will still be in debt by a
-        tiny amount.  While for ERC20 tokens this is not a problem, for
-        ETH this is a problem.
+        tiny amount.  Please note that for ERC20 tokens this is not a problem,
+        because Compound will automatically get the exact amount of tokens
+        from your wallet, including negative interest, as long as you approved
+        enough tokens.
 
         Sources:
         - https://discord.com/channels/402910780124561410/402912055448961034/855058058393026600
