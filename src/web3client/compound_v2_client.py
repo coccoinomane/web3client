@@ -167,7 +167,7 @@ class CompoundV2CErc20Client(Erc20Client):
                 f"Fraction must be between 0 and 1, got {fraction}"
             )
         amount = int(Decimal(str(fraction)) * self.borrowed())
-        return self.transact(self.functions.repayBorrow(amount))
+        return self.repay(amount)
 
     def approve_and_repay(self, amount: int) -> HexStr:
         """Repay tokens to the Compound V2 market, to reduce the
@@ -224,6 +224,16 @@ class CompoundV2CErc20Client(Erc20Client):
         )
 
 
+"""
+  _____   _____   _   _     ____ _ _            _
+ | ____| |_   _| | | | |   / ___| (_) ___ _ __ | |_
+ |  _|     | |   | |_| |  | |   | | |/ _ \ '_ \| __|
+ | |___    | |   |  _  |  | |___| | |  __/ | | | |_
+ |_____|   |_|   |_| |_|   \____|_|_|\___|_| |_|\__|
+
+"""
+
+
 class CompoundV2CEtherClient(CompoundV2CErc20Client):
     """Client loaded with the contract of a Compound V2 market
     of type ETH (https://docs.compound.finance/v2/ctokens/)."""
@@ -274,6 +284,17 @@ class CompoundV2CEtherClient(CompoundV2CErc20Client):
         """Repay ETH to the Compound V2 market, to reduce the
         amount borrowed"""
         return self.transact(self.functions.repayBorrow(), value_in_wei=amount)
+
+    def repay_fraction(self, fraction: float) -> HexStr:
+        """Repay ETH to the Compound V2 market, to reduce the
+        amount borrowed; the amount to repay must be expressed as a
+        fraction of the total borrowed amount"""
+        if fraction < 0 or fraction > 1:
+            raise Web3ClientException(
+                f"Fraction must be between 0 and 1, got {fraction}"
+            )
+        amount = int(Decimal(str(fraction)) * self.borrowed())
+        return self.repay(amount)
 
     def repay_all(self) -> HexStr:
         """Repay all ETH to the Compound V2 market.
