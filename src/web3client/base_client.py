@@ -79,7 +79,10 @@ class BaseClient:
     The transaction type is set with the `tx_type` attribute, which can be set either
     at the class level or instance level.  Its possible values are:
 
-    - tx_type = 2 (default): Will send EIP-1559 transactions.
+    - tx_type = None (default): The client will try to infer the transaction type from
+        the node.  If the node does not support EIP-1559, it will fall back to legacy
+        transactions.
+    - tx_type = 2: Will send EIP-1559 transactions.
         The miner's tip (maxMaxFeePerGas) can be set at the class level, instance
         level or function level.  If not set, it will be set to 0.01 Gwei by default.
         The max fee (maxMaxFeePerGas) is estimated according to the usual formula
@@ -90,8 +93,6 @@ class BaseClient:
     - tx_type = 1: This value indicates a legacy transaction with support for
         access lists (EIP2930 transactions).  The client does not support access lists
         yet, therefore we will treat this as a legacy transaction.
-    - tx_type = None: The client will try to infer the transaction type from the node.
-        If the node does not support EIP-1559, it will fall back to legacy transactions
 
     The gas limit is set indipendently than the transaction type.  If not set, it will
     be estimated using eth_gasEstimate.  If set, it will be used as is, and no estimation
@@ -152,8 +153,8 @@ class BaseClient:
     """RPC node to use.  Set it to None for a uninitialized client."""
     chain_id: int = None
     """ID of the chain.  If not given, it will be inferred from the node"""
-    tx_type: int = 2
-    """Type of transaction. type=2 means an EIP-1599 transaction. More details in class docstring."""
+    tx_type: int = None
+    """Type of transaction.  Leave empty to infer it from the node.  More details in class docstring."""
     max_priority_fee_in_gwei: float = 0.01
     """"Miner's tip, relevant only for type-2 transactions.  Default is 0.01 Gwei"""
     upper_limit_for_base_fee_in_gwei: float = float("inf")
