@@ -76,6 +76,15 @@ supported_networks: List[NetworkConfig] = [
         "rpcs": ["https://mainnet.optimism.io"],
         "coin": "ETH",
     },
+    # Scroll
+    {
+        "name": "scroll",
+        "tx_type": 1,
+        "chain_id": 534352,
+        "middlewares": [geth_poa_middleware],
+        "rpcs": ["https://mainnet-rpc.scroll.io"],
+        "coin": "ETH",
+    },
 ]
 
 
