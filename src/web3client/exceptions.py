@@ -2,6 +2,10 @@ class Web3ClientException(BaseException):
     pass
 
 
+class ProviderNotSet(Web3ClientException):
+    pass
+
+
 class MissingParameter(Web3ClientException):
     pass
 

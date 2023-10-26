@@ -18,8 +18,9 @@ from hexbytes import HexBytes
 from typing_extensions import Self
 from web3 import Web3
 from web3.contract.contract import Contract, ContractFunction, ContractFunctions
-from web3.exceptions import TransactionNotFound
+from web3.exceptions import ExtraDataLengthError, TransactionNotFound
 from web3.gas_strategies import rpc
+from web3.middleware import geth_poa_middleware
 from web3.types import (
     BlockData,
     BlockIdentifier,
@@ -33,7 +34,11 @@ from web3.types import (
 )
 from websockets.client import connect
 
-from web3client.exceptions import TransactionTooExpensive, Web3ClientException
+from web3client.exceptions import (
+    ProviderNotSet,
+    TransactionTooExpensive,
+    Web3ClientException,
+)
 from web3client.helpers.subscribe import parse_notification, subscribe_to_notification
 from web3client.middlewares.rpc_log_middleware import (
     BaseRpcLog,
@@ -153,6 +158,8 @@ class BaseClient:
     """"Miner's tip, relevant only for type-2 transactions.  Default is 0.01 Gwei"""
     upper_limit_for_base_fee_in_gwei: float = float("inf")
     """Raise an exception if baseFee is larger than this (default is no limit)"""
+    auto_detect_poa: bool = False
+    """Automatically detect Proof of Authority chains, by sending a request to the node"""
     contract_address: str = None
     """Address of smart contract"""
     abi: dict[str, Any] = None
@@ -193,6 +200,7 @@ class BaseClient:
         private_key: str = None,
         max_priority_fee_in_gwei: float = None,
         upper_limit_for_base_fee_in_gwei: float = None,
+        auto_detect_poa: bool = None,
         contract_address: str = None,
         abi: dict[str, Any] = None,
         middlewares: List[Middleware] = None,
@@ -205,11 +213,11 @@ class BaseClient:
         to call the following setters before using the client:
 
          -  If `node_uri` is not given, call `self.set_provider()` before interacting
-             with the blockchain.
+                with the blockchain.
          -  If `private_key` is not given, call `self.set_account()` before sending
-             transactions.
+                transactions.
          -  If `contract_address` is not given, call `self.set_contract()` before
-             using `self.call()` or `self.transact()`.
+                using `self.call()` or `self.transact()`.
         """
         # Initialize the w3 client
         self.set_provider(node_uri or self.__class__.node_uri)
@@ -228,6 +236,7 @@ class BaseClient:
             upper_limit_for_base_fee_in_gwei
             or self.__class__.upper_limit_for_base_fee_in_gwei
         )
+        self.auto_detect_poa = auto_detect_poa or self.__class__.auto_detect_poa
         self.abi = abi or self.__class__.abi
         if contract_address or self.__class__.contract_address:
             self.set_contract(contract_address or self.__class__.contract_address)
@@ -235,6 +244,8 @@ class BaseClient:
             self.set_middlewares(middlewares or self.__class__.middlewares)
         if rpc_logs or self.__class__.rpc_logs:
             self.set_rpc_logs(rpc_logs or self.__class__.rpc_logs)
+        if self.auto_detect_poa:
+            self.maybe_inject_poa_middleware()
 
         # Further initialization
         self.init()
@@ -256,6 +267,7 @@ class BaseClient:
     def set_account(self, private_key: str) -> Self:
         """Make it possible for the client to sign transactions with the
         given private key"""
+        self.raise_if_provider_not_set()
         self.private_key = private_key
         self.account = Account.from_key(private_key)
         self.user_address = self.account.address
@@ -265,6 +277,7 @@ class BaseClient:
     def unset_account(self) -> Self:
         """Unset the previously added account, thus making it impossible
         for the client to sign transactions"""
+        self.raise_if_provider_not_set()
         self.private_key = None
         self.account = None
         self.user_address = None
@@ -272,6 +285,7 @@ class BaseClient:
         return self
 
     def set_contract(self, contract_address: str, abi: dict[str, Any] = None) -> Self:
+        self.raise_if_provider_not_set()
         abi = abi or self.abi
         if not abi:
             raise Web3ClientException("ABI not set")
@@ -281,12 +295,14 @@ class BaseClient:
         return self
 
     def set_middlewares(self, middlewares: List[Middleware]) -> Self:
+        self.raise_if_provider_not_set()
         self.middlewares = middlewares
         for i, m in enumerate(middlewares):
             self.w3.middleware_onion.inject(m, layer=i)
         return self
 
     def set_rpc_logs(self, rpc_logs: List[BaseRpcLog]) -> Self:
+        self.raise_if_provider_not_set()
         self.rpc_logs = rpc_logs
         for rpc_log in rpc_logs:
             self.w3.middleware_onion.add(construct_generic_rpc_log_middleware(rpc_log))
@@ -984,12 +1000,40 @@ class BaseClient:
         latest_block = self.w3.eth.get_block("latest")
         return latest_block.get("baseFeePerGas") is not None
 
+    def is_poa_chain(self) -> bool:
+        """Return True if the chain is a PoA chain.  Refer to
+        https://web3py.readthedocs.io/en/stable/middleware.html#proof-of-authority
+        for more details"""
+        try:
+            self.get_latest_block()
+        except ExtraDataLengthError:
+            return True
+        return False
+
+    def maybe_inject_poa_middleware(self) -> None:
+        """If the chain is a PoA chain, support it by injecting the right
+        middleware."""
+        self.raise_if_provider_not_set()
+        if (
+            self.is_poa_chain()
+            and geth_poa_middleware not in self.w3.middleware_onion._queue
+        ):
+            self.logger.debug("Detected PoA chain, injecting middleware")
+            self.w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+
     def infer_tx_type(self) -> int:
         """Infer the transaction type for the chain: 2 if the chain supports
         EIP-1559, else 0.  This is used to build transactions."""
         if self.chain_id == 1:
             return 2  # No need for ethereum mainnet ;-)
         return 2 if self.supports_eip1559() else 0
+
+    def raise_if_provider_not_set(self) -> None:
+        """Raise an exception if the w3 provider is not set"""
+        if not self.w3:
+            raise ProviderNotSet(
+                "Web3 provider not set.  Did you pass a `node_uri` to web3client?"
+            )
 
     @staticmethod
     def get_contract(
