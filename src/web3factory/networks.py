@@ -44,6 +44,15 @@ supported_networks: List[NetworkConfig] = [
         ],
         "coin": "AVAX",
     },
+    # Polygon
+    {
+        "name": "poly",
+        "tx_type": 2,
+        "chain_id": 137,
+        "middlewares": [geth_poa_middleware],
+        "rpcs": ["https://polygon-rpc.com"],
+        "coin": "MATIC",
+    },
     # Arbitrum One
     {
         "name": "arb",
