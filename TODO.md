@@ -1,5 +1,7 @@
 # Top priority
 
+- Why not using the networks defined in eth_utils/__json/eth_networks.json?
+
 # To do
 
 # Backlog

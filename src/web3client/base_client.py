@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from copy import deepcopy
 from logging import Logger, getLogger
 from os.path import dirname, isfile, realpath
 from pathlib import Path
@@ -17,10 +18,11 @@ from eth_typing.encoding import HexStr
 from hexbytes import HexBytes
 from typing_extensions import Self
 from web3 import Web3
+from web3._utils.method_formatters import BLOCK_FORMATTERS
 from web3.contract.contract import Contract, ContractFunction, ContractFunctions
-from web3.exceptions import ExtraDataLengthError, TransactionNotFound
+from web3.exceptions import TransactionNotFound
 from web3.gas_strategies import rpc
-from web3.middleware import geth_poa_middleware
+from web3.middleware.validation import BLOCK_VALIDATORS
 from web3.types import (
     BlockData,
     BlockIdentifier,
@@ -143,6 +145,23 @@ class BaseClient:
 
     Please note that subclasses can define a class attribute `rpc_logs` to set a default
     value for `rpc_logs` for all instances of the subclass.
+
+    POA support
+    -----------
+
+    web3client supports PoA chains like BnB, Polygon POS, Avalanche and Scroll
+    out of the box.  We do so by disabling the checks that web3.py does on the
+    `extraData` block property.
+
+    If for any reason you want to keep the `extraData` checks, set `add_poa_support=False`.
+    Please note that if you keep the checks, and want to use a PoA chain, then
+    you will also need to set `middlewares=[web3.middleware.geth_poa_middleware]`.
+    Using the middleware instead of `add_poa_support` would also rename the
+    `extraData` field to `proofOfAuthorityData`.
+
+    More details:
+        - http://web3py.readthedocs.io/en/stable/middleware.html#proof-of-authority
+        - https://openethereum.github.io/Proof-of-Authority-Chains
     """
 
     # Attributes that can be either set at instantiation or at the class level,
@@ -159,15 +178,15 @@ class BaseClient:
     """"Miner's tip, relevant only for type-2 transactions.  Default is 0.01 Gwei"""
     upper_limit_for_base_fee_in_gwei: float = float("inf")
     """Raise an exception if baseFee is larger than this (default is no limit)"""
-    auto_detect_poa: bool = False
-    """Automatically detect Proof of Authority chains, by sending a request to the node"""
+    add_poa_support: bool = True
+    """Set to True to support to PoA chains like BnB, Polygon POS, Scroll, etc.  More details in class docstring."""
     contract_address: str = None
     """Address of smart contract"""
     abi: dict[str, Any] = None
     """ABI of smart contract; to read from a JSON file, use class method get_abi_json()"""
-    middlewares: List[Middleware] = None
-    """Ordered list of web3.py middlewares to use"""
-    rpc_logs: List[BaseRpcLog] = None
+    middlewares: List[Middleware] = []
+    """List of web3.py middlewares to use.  Will be added to the outermost layer of the onion, in the given order."""
+    rpc_logs: List[BaseRpcLog] = []
     """Where to log RPC calls.  More details in class docstring"""
 
     # Attributes that can only be set at instantiation
@@ -189,9 +208,14 @@ class BaseClient:
     # Class-only attributes
     abi_dir: Union[Path, str] = Path(dirname(realpath(__file__))) / "abi"
     """Directory where to find the ABI json files"""
-
     logger: Logger = getLogger("web3client.BaseClient")
     """Class logger"""
+
+    # Constants
+    WEB3_BLOCK_VALIDATORS = deepcopy(BLOCK_VALIDATORS)
+    """Checks performed by web3.py on all blocks returned from the RPC.  This is used in web3.py's validation middleware."""
+    WEB3_BLOCK_FORMATTERS = deepcopy(BLOCK_FORMATTERS)
+    """Changes applied by web3.py to all blocks returned from the RPC.  Executed after WEB3_BLOCK_VALIDATORS."""
 
     def __init__(
         self,
@@ -201,7 +225,7 @@ class BaseClient:
         private_key: str = None,
         max_priority_fee_in_gwei: float = None,
         upper_limit_for_base_fee_in_gwei: float = None,
-        auto_detect_poa: bool = None,
+        add_poa_support: bool = None,
         contract_address: str = None,
         abi: dict[str, Any] = None,
         middlewares: List[Middleware] = None,
@@ -237,7 +261,12 @@ class BaseClient:
             upper_limit_for_base_fee_in_gwei
             or self.__class__.upper_limit_for_base_fee_in_gwei
         )
-        self.auto_detect_poa = auto_detect_poa or self.__class__.auto_detect_poa
+        self.add_poa_support = (
+            add_poa_support
+            if add_poa_support is not None
+            else self.__class__.add_poa_support
+        )
+        self.maybe_add_poa_support()
         self.abi = abi or self.__class__.abi
         if contract_address or self.__class__.contract_address:
             self.set_contract(contract_address or self.__class__.contract_address)
@@ -245,8 +274,6 @@ class BaseClient:
             self.set_middlewares(middlewares or self.__class__.middlewares)
         if rpc_logs or self.__class__.rpc_logs:
             self.set_rpc_logs(rpc_logs or self.__class__.rpc_logs)
-        if self.auto_detect_poa:
-            self.maybe_inject_poa_middleware()
 
         # Further initialization
         self.init()
@@ -298,8 +325,8 @@ class BaseClient:
     def set_middlewares(self, middlewares: List[Middleware]) -> Self:
         self.raise_if_provider_not_set()
         self.middlewares = middlewares
-        for i, m in enumerate(middlewares):
-            self.w3.middleware_onion.inject(m, layer=i)
+        for m in middlewares:
+            self.w3.middleware_onion.inject(m, layer=0)
         return self
 
     def set_rpc_logs(self, rpc_logs: List[BaseRpcLog]) -> Self:
@@ -1001,27 +1028,6 @@ class BaseClient:
         latest_block = self.w3.eth.get_block("latest")
         return latest_block.get("baseFeePerGas") is not None
 
-    def is_poa_chain(self) -> bool:
-        """Return True if the chain is a PoA chain.  Refer to
-        https://web3py.readthedocs.io/en/stable/middleware.html#proof-of-authority
-        for more details"""
-        try:
-            self.get_latest_block()
-        except ExtraDataLengthError:
-            return True
-        return False
-
-    def maybe_inject_poa_middleware(self) -> None:
-        """If the chain is a PoA chain, support it by injecting the right
-        middleware."""
-        self.raise_if_provider_not_set()
-        if (
-            self.is_poa_chain()
-            and geth_poa_middleware not in self.w3.middleware_onion._queue
-        ):
-            self.logger.debug("Detected PoA chain, injecting middleware")
-            self.w3.middleware_onion.inject(geth_poa_middleware, layer=0)
-
     def infer_tx_type(self) -> int:
         """Infer the transaction type for the chain: 2 if the chain supports
         EIP-1559, else 0.  This is used to build transactions."""
@@ -1035,6 +1041,16 @@ class BaseClient:
             raise ProviderNotSet(
                 "Web3 provider not set.  Did you pass a `node_uri` to web3client?"
             )
+
+    def maybe_add_poa_support(self) -> None:
+        """If requested, enable support for PoA chains by disabling checks on
+        the `extraData` field of blocks."""
+        if self.add_poa_support:
+            BLOCK_VALIDATORS["extraData"] = lambda val: val
+            BLOCK_FORMATTERS["extraData"] = lambda val: HexBytes(val)
+        else:
+            BLOCK_VALIDATORS["extraData"] = self.WEB3_BLOCK_VALIDATORS["extraData"]
+            BLOCK_FORMATTERS["extraData"] = self.WEB3_BLOCK_FORMATTERS["extraData"]
 
     @staticmethod
     def get_contract(
