@@ -90,8 +90,8 @@ class BaseClient:
         The max fee (maxMaxFeePerGas) is estimated according to the usual formula
         maxMaxFeePerGas = 2 * baseFee + maxPriorityFeePerGas, where baseFee is the
         base fee of the last block.
-    - tx_type = 0: Will send legacy transactions.  Gas price will be estimated
-        using eth_gasPrice.
+    - tx_type = 0: Will send legacy transactions.  Gas price, if not provided,
+        will be estimated using eth_gasPrice.
     - tx_type = 1: This value indicates a legacy transaction with support for
         access lists (EIP2930 transactions).  The client does not support access lists
         yet, therefore we will treat this as a legacy transaction.
@@ -113,8 +113,7 @@ class BaseClient:
     exception.  By default, there is no limit.
 
     The `upper_limit_for_base_fee_in_gwei` parameter works for legacy transactions,
-    too.  In this case, the gas price estimation (eth_gasPrice) will be used as
-    reference, instead of the base fee.
+    too.  In this case, the gas price, instead of the base fee.
 
 
     RPC logging
@@ -175,9 +174,14 @@ class BaseClient:
     tx_type: int = None
     """Type of transaction.  Leave empty to infer it from the node.  More details in class docstring."""
     max_priority_fee_in_gwei: float = 0.01
-    """"Miner's tip, relevant only for type-2 transactions.  Default is 0.01 Gwei"""
+    """"Miner's tip, in gwei.  Relevant only for type-2 transactions.  Default is 0.01 Gwei"""
     upper_limit_for_base_fee_in_gwei: float = float("inf")
-    """Raise an exception if baseFee is larger than this (default is no limit)"""
+    """For type-2 transactions, raise an exception if `baseFee` is larger than this.
+    For legacy and type-1 transactions, raise an exception if `gasPrice` is
+    larger than this.  Default is no limit."""
+    gas_price_in_gwei: float = None
+    """Gas price, in gwei.  Relevant only for legacy and type-1 transactions.
+    Default is None, which means that the gas price will be estimated on chain."""
     add_poa_support: bool = True
     """Set to True to support to PoA chains like BnB, Polygon POS, Scroll, etc.  More details in class docstring."""
     contract_address: str = None
@@ -225,6 +229,7 @@ class BaseClient:
         private_key: str = None,
         max_priority_fee_in_gwei: float = None,
         upper_limit_for_base_fee_in_gwei: float = None,
+        gas_price_in_gwei: float = None,
         add_poa_support: bool = None,
         contract_address: str = None,
         abi: dict[str, Any] = None,
@@ -261,6 +266,7 @@ class BaseClient:
             upper_limit_for_base_fee_in_gwei
             or self.__class__.upper_limit_for_base_fee_in_gwei
         )
+        self.gas_price_in_gwei = gas_price_in_gwei or self.__class__.gas_price_in_gwei
         self.add_poa_support = (
             add_poa_support
             if add_poa_support is not None
@@ -355,8 +361,8 @@ class BaseClient:
            will be set to self.max_priority_fee_in_gwei
         - For type-2 transactions, the max gas fee is estimated according to the usual
            formula maxMaxFeePerGas = 2 * baseFee + maxPriorityFeePerGas.
-        - For legacy and type-1 transactions, the gasPrice is estimated on-chain using
-           eth_gasPrice.
+        - For legacy and type-1 transactions, the gasPrice parameter, if not
+          provided at the instance level, will be estimated on chain using eth_gasPrice.
         """
 
         # Properties that you are not likely to change
@@ -376,8 +382,11 @@ class BaseClient:
 
         # For legacy transactions, we only have gasPrice
         if tx_type == 0 or tx_type == 1:
-            self.w3.eth.set_gas_price_strategy(rpc.rpc_gas_price_strategy)
-            tx["gasPrice"] = self.w3.eth.generate_gas_price()
+            if self.gas_price_in_gwei:
+                tx["gasPrice"] = Web3.to_wei(self.gas_price_in_gwei, "gwei")
+            else:
+                self.w3.eth.set_gas_price_strategy(rpc.rpc_gas_price_strategy)
+                tx["gasPrice"] = self.w3.eth.generate_gas_price()
             gas_fee_in_gwei = float(Web3.from_wei(tx["gasPrice"], "gwei"))
             self.logger.debug(
                 f"Will build legacy TX with gasPrice={gas_fee_in_gwei} gwei"
@@ -878,8 +887,8 @@ class BaseClient:
 
     def estimate_gas_price_in_gwei(self) -> float:
         """
-        For Type-1 transactions (pre EIP-1559), estimate the gasPrice
-        parameter by asking it directly to the node.
+        For legacy and type-1 transactionss (pre EIP-1559), estimate the
+        gasPrice parameter by asking it directly to the node.
 
         Docs: https://web3py.readthedocs.io/en/stable/gas_price.html
         """
@@ -890,7 +899,7 @@ class BaseClient:
         """
         Raise an exception if the given gas fee in Gwei is too high.
 
-        For Type-1 transactions, pass the gasPrice; for Type-2,
+        For legacy and type-1 transactions, pass the gasPrice; for type-2,
         pass the baseFee.
         """
         if (
