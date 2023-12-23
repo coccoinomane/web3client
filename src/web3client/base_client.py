@@ -1026,6 +1026,7 @@ class BaseClient:
             private_key=self.private_key,
             max_priority_fee_in_gwei=self.max_priority_fee_in_gwei,
             upper_limit_for_base_fee_in_gwei=self.upper_limit_for_base_fee_in_gwei,
+            gas_price_in_gwei=self.gas_price_in_gwei,
             contract_address=self.contract_address,
             abi=self.abi,
             middlewares=self.middlewares,
