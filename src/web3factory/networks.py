@@ -25,7 +25,7 @@ supported_networks: List[NetworkConfig] = [
     # Avalanche C Chain
     {
         "name": "bnb",
-        "tx_type": 1,
+        "tx_type": 0,
         "chain_id": 56,
         "middlewares": [geth_poa_middleware],
         "rpcs": [
@@ -72,7 +72,7 @@ supported_networks: List[NetworkConfig] = [
     # Kava EVM
     {
         "name": "kava",
-        "tx_type": 1,
+        "tx_type": 0,
         "chain_id": 2222,
         "rpcs": ["https://evm.kava.io"],
         "coin": "KAVA",
@@ -80,7 +80,7 @@ supported_networks: List[NetworkConfig] = [
     # Optimism
     {
         "name": "opt",
-        "tx_type": 1,
+        "tx_type": 0,
         "chain_id": 10,
         "rpcs": ["https://mainnet.optimism.io"],
         "coin": "ETH",
@@ -88,11 +88,19 @@ supported_networks: List[NetworkConfig] = [
     # Scroll
     {
         "name": "scroll",
-        "tx_type": 1,
+        "tx_type": 0,
         "chain_id": 534352,
         "middlewares": [geth_poa_middleware],
         "rpcs": ["https://mainnet-rpc.scroll.io"],
         "coin": "ETH",
+    },
+    # ZKFair
+    {
+        "name": "zkf",
+        "tx_type": 0,
+        "chain_id": 42766,
+        "rpcs": ["https://rpc.zkfair.io"],
+        "coin": "USDC",
     },
 ]
 
