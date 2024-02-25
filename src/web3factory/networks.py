@@ -102,6 +102,14 @@ supported_networks: List[NetworkConfig] = [
         "rpcs": ["https://rpc.zkfair.io"],
         "coin": "USDC",
     },
+    # Manta Pacific
+    {
+        "name": "manta",
+        "tx_type": 0,
+        "chain_id": 169,
+        "rpcs": ["https://pacific-rpc.manta.network/http"],
+        "coin": "USDC",
+    },
 ]
 
 
