@@ -1,27 +1,27 @@
 repos:
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
+-   repo: https://github.com/pycqa/isort
+    rev: 5.13.2
     hooks:
       - id: isort
 
 -   repo: https://github.com/PyCQA/autoflake
-    rev: v2.2.0
+    rev: v2.3.0
     hooks:
     -   id: autoflake
 
 -   repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 24.2.0
     hooks:
       - id: black
         name: black
 
 ### For mypy, pre-commit ends up giving a different result than simply
 ### running `.venv/bin/mypy src tests`. So, we disabled it.
-# -   repo: https://github.com/pre-commit/mirrors-mypy
-#     rev: v1.5.1
-#     hooks:
-#     -   id: mypy
-#         additional_dependencies: [mypy-extensions, types-setuptools, types-requests, typing_extensions, eth-typing]
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+    -   id: mypy
+        additional_dependencies: [mypy-extensions, types-setuptools, types-requests, typing_extensions, eth-typing]
 
 -   repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.10.1
