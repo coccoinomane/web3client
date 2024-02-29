@@ -435,7 +435,7 @@ class BaseClient:
         value_in_eth: float,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> TxParams:
         """
         Build a transaction involving a transfer of value (in ETH) to an address,
@@ -452,7 +452,7 @@ class BaseClient:
         value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> TxParams:
         """
         Build a transaction involving a transfer of value (in Wei) to an address,
@@ -476,7 +476,7 @@ class BaseClient:
         value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> TxParams:
         """
         Build a transaction that involves a contract interation.
@@ -524,7 +524,7 @@ class BaseClient:
         value_in_eth: float,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> HexStr:
         """
         Send ETH to the given address
@@ -540,7 +540,7 @@ class BaseClient:
         value_in_wei: int,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> HexStr:
         """
         Send ETH (in Wei) to the given address
@@ -984,7 +984,7 @@ class BaseClient:
         value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> HexStr:
         """
         Execute a contract function.

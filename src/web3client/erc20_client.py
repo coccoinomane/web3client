@@ -98,7 +98,7 @@ class Erc20Client(BaseClient):
         value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> HexStr:
         """
         Transfer some amount of the token to an address; does not
@@ -119,7 +119,7 @@ class Erc20Client(BaseClient):
         value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> HexStr:
         """
         Approve the given address to spend some amount of the token
@@ -215,7 +215,7 @@ class DualClient(Erc20Client):
         value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
     ) -> HexStr:
         if self.is_native():
             if value_in_wei:
@@ -240,7 +240,7 @@ class DualClient(Erc20Client):
         value_in_wei: int = None,
         nonce: Nonce = None,
         gas_limit: int = None,
-        max_priority_fee_in_gwei: int = None,
+        max_priority_fee_in_gwei: float = None,
         strict: bool = True,
     ) -> HexStr:
         """
